@@ -8,8 +8,9 @@ use \User;
 use \Html;
 use \HTMLForm;
 
-class SpecialManageAchievements extends SpecialPage {
-	
+class SpecialManageAchievements extends SpecialPage
+{
+
 	protected $successMessage = '';
 
 	const MODE_LIST = 1;
@@ -27,22 +28,26 @@ class SpecialManageAchievements extends SpecialPage {
 	const MODE_OTHER = 98;
 	const MODE_RANDOM = 99;
 
-	function __construct() {
-		parent::__construct( 'ManageAchievements', 'manageachievements' );
+	function __construct()
+	{
+		parent::__construct('ManageAchievements', 'manageachievements');
 	}
 
-	public function doesWrites() {
+	public function doesWrites()
+	{
 		return true;
 	}
 
-	function getGroupName() {
+	function getGroupName()
+	{
 		return 'users';
 	}
-	
-	public static function getMode( $request, $par ) {
-		$mode = strtolower( $request->getVal( 'action', $par ) );
 
-		switch ( $mode ) {
+	public static function getMode($request, $par)
+	{
+		$mode = strtolower($request->getVal('action', $par));
+
+		switch ($mode) {
 			case 'list':
 			case self::MODE_LIST:
 				return self::MODE_LIST;
@@ -90,14 +95,15 @@ class SpecialManageAchievements extends SpecialPage {
 		}
 	}
 
-	public static function buildTools( $lang, $linkRenderer = null ) {
-		if ( !$lang instanceof \Language ) {
+	public static function buildTools($lang, $linkRenderer = null)
+	{
+		if (!$lang instanceof \Language) {
 			// back-compat where the first parameter was $unused
 			global $wgLang;
 			$lang = $wgLang;
 		}
-		if ( !$linkRenderer ) {
-			$linkRenderer = \MediaWikiServices::getInstance()->getLinkRenderer();
+		if (!$linkRenderer) {
+			$linkRenderer = MediaWikiServices::getInstance()->getLinkRenderer();
 		}
 
 		$tools = [];
@@ -115,24 +121,25 @@ class SpecialManageAchievements extends SpecialPage {
 			'tokens',
 		];
 
-		foreach ( $modes as $mode ) {
+		foreach ($modes as $mode) {
 			$tools[] = $linkRenderer->makeKnownLink(
-				SpecialPage::getTitleFor( 'ManageAchievements', $mode ),
-				wfMessage( 'manageachievements-mode-' . $mode )->text()
+				SpecialPage::getTitleFor('ManageAchievements', $mode),
+				wfMessage('manageachievements-mode-' . $mode)->text()
 			);
 		}
 
 		return Html::rawElement(
 			'span',
-			[ 'class' => 'mw-manageachievements-toollinks' ],
+			['class' => 'mw-manageachievements-toollinks'],
 			$linkRenderer->makeKnownLink(
-				SpecialPage::getTitleFor( 'ManageAchievements' ),
-				wfMessage( 'manageachievements' )->text()
-			) . wfMessage( 'parentheses' )->rawParams( $lang->pipeList( $tools ) )->escaped()
+				SpecialPage::getTitleFor('ManageAchievements'),
+				wfMessage('manageachievements')->text()
+			) . wfMessage('parentheses')->rawParams($lang->pipeList($tools))->escaped()
 		);
 	}
 
-	function execute( $mode ) {
+	function execute($mode)
+	{
 		$out = $this->getOutput();
 		$request = $this->getRequest();
 		$user = $this->getUser();
@@ -141,345 +148,355 @@ class SpecialManageAchievements extends SpecialPage {
 		// Set the page title, robot policies, etc.
 		$this->setHeaders();
 
-		if ( !$user->isAllowed( 'manageachievements' ) ) {
-			throw new \PermissionsError( 'manageachievements' );
+		if (!$user->isAllowed('manageachievements')) {
+			throw new \PermissionsError('manageachievements');
 		}
-		
+
 		$this->checkReadOnly();
 
-		$out->addSubtitle( 
+		$out->addSubtitle(
 			self::buildTools(
 				$this->getLanguage(),
 				$this->getLinkRenderer()
 			)
 		);
 
-		$mode = self::getMode( $request, $mode );
+		$mode = self::getMode($request, $mode);
 
-		$target = $request->getVal( 'user' );
+		$target = $request->getVal('user');
 
-		if ( is_string( $target ) && ($target = trim( $target )) !== '' ) {
-			$cuser = User::newFromName( $target );
+		if (is_string($target) && ($target = trim($target)) !== '') {
+			$cuser = MediaWikiServices::getInstance()->getUserFactory()->newFromName($target);
 		}
 
-		switch ( $mode ) {
+		switch ($mode) {
 			case self::MODE_LIST:
-				$out->setPageTitle( $this->msg( 'manageachievements-mode-list' ) );
+				$out->setPageTitle($this->msg('manageachievements-mode-list'));
 				$allachievs = AchievementHandler::AchievementsFromAll();
-				AchievementHandler::sortAchievements( $allachievs );
-				
+				AchievementHandler::sortAchievements($allachievs);
+
 				$table = '';
-				foreach ( $allachievs as &$achiev ) {
+				foreach ($allachievs as &$achiev) {
 					$id = $achiev->getID();
 					$count = [];
-					$table .= \ExtAchievement::buildAchievBlock( $achiev, null, $count, $user );
+					$table .= \ExtAchievement::buildAchievBlock($achiev, null, $count, $user);
 				}
-				$out->addHTML( $table );
-				$out->addModules( [ 'ext.pref.achievement' ] );
+				$out->addHTML($table);
+				$out->addModules(['ext.pref.achievement']);
 				break;
 			case self::MODE_PROG:
-				$out->setPageTitle( $this->msg( 'manageachievements-mode-prog' ) );
-				$this->showAchievForm( 'processProgInput' );
+				$out->setPageTitle($this->msg('manageachievements-mode-prog'));
+				$this->showAchievForm('processProgInput');
 				break;
 			case self::MODE_ACHIEVER:
-				$out->setPageTitle( $this->msg( 'manageachievements-mode-achiever' ) );
-				$this->showAchievForm( 'processAchieverInput' );
+				$out->setPageTitle($this->msg('manageachievements-mode-achiever'));
+				$this->showAchievForm('processAchieverInput');
 				break;
 			case self::MODE_TITLE:
-				$out->setPageTitle( $this->msg( 'manageachievements-mode-title' ) );
-				$dbw = wfGetDB( DB_SLAVE );
+				$out->setPageTitle($this->msg('manageachievements-mode-title'));
+				$dbw = wfGetDB(DB_REPLICA);
 
 				$res = $dbw->select(
 					'user_properties',
-					[ 'up_user', 'up_value' ],
-					[ 'up_property' => 'achievtitle', 'up_value <> \'\'' ],
+					['up_user', 'up_value'],
+					['up_property' => 'achievtitle', 'up_value <> \'\''],
 					__METHOD__,
-					[ 'ORDER BY' => 'up_value ASC' ]
+					['ORDER BY' => 'up_value ASC']
 				);
-				if ( $res ) {
-					$out->addHTML( $this->msg( 'manage-achiev-user-count' )->rawParams( $dbw->numRows( $res ) )->escaped() . '<br/>' );
-					$out->addHTML( '<ul>' );
-					while ( $row = $res->fetchRow() ) {
+				if ($res) {
+					$out->addHTML($this->msg('manage-achiev-user-count')->rawParams($res->numRows())->escaped() . '<br/>');
+					$out->addHTML('<ul>');
+					while ($row = $res->fetchRow()) {
 						$stage = 0;
-						$achiev = AchievementHandler::AchievementFromStagedID( $row['up_value'], $stage );
-						if ( $achiev !== false ) {
-							$out->addHTML('<li>' . User::whoIs( $row['up_user'] ) . ' '. $achiev->getAfterLinkMsg( $stage, false ) . '</a></li>' );
+						$achiev = AchievementHandler::AchievementFromStagedID($row['up_value'], $stage);
+						if ($achiev !== false) {
+							$out->addHTML('<li>' . User::whoIs($row['up_user']) . ' ' . $achiev->getAfterLinkMsg($stage, false) . '</a></li>');
 						}
-						
+
 					}
-					$out->addHTML( '</ul>' );
+					$out->addHTML('</ul>');
 				}
 				break;
 			case self::MODE_RECENT:
-				$out->setPageTitle( $this->msg( 'manageachievements-mode-recent' ) );
-				$dbw = wfGetDB( DB_SLAVE );
+				$out->setPageTitle($this->msg('manageachievements-mode-recent'));
+				$dbw = wfGetDB(DB_REPLICA);
 
 				$res = $dbw->select(
 					['echo_event', 'echo_notification'],
-					[ 'event_type', 'event_agent_id', 'event_extra', 'notification_timestamp' ],
-					[ 'event_type' => ['achiev-award','achiev-remove'] ],
+					['event_type', 'event_agent_id', 'event_extra', 'notification_timestamp'],
+					['event_type' => ['achiev-award', 'achiev-remove']],
 					__METHOD__,
-					[ 'ORDER BY' => 'event_id DESC', 'LIMIT' => 100 ],
+					['ORDER BY' => 'event_id DESC', 'LIMIT' => 100],
 					[
 						'echo_notification' => [
 							'LEFT JOIN',
-							[ 'event_id=notification_event' ]
+							['event_id=notification_event']
 						]
 					]
 				);
-				if ( $res ) {
-					$out->addHTML( '<ul>' );
-					while ( $row = $res->fetchRow() ) {
-						$extra = unserialize( $row['event_extra'] );
+				if ($res) {
+					$out->addHTML('<ul>');
+					while ($row = $res->fetchRow()) {
+						$extra = unserialize($row['event_extra']);
 						$stage = 0;
-						$achiev = AchievementHandler::AchievementFromStagedID( $extra['achievid'], $stage );
-						if ( $achiev !== false ) {
-							$auser = \User::newFromId( $row['event_agent_id'] );
-							$ts = wfTimestampOrNull( TS_UNIX, $row['notification_timestamp'] );
-							
-							$out->addHTML('<li>' . $auser->getName() . ': '. 
-							$this->msg( 'notification-body-' . $row['event_type'] )->rawParams($achiev->getNameMsg( $stage ), $achiev->getDescMsg( $stage )).
-							( $ts ? $this->msg( 'parentheses' )->rawParams( $lang->userTimeAndDate($ts, $user) )->escaped() : '' ).'</li>' );
+						$achiev = AchievementHandler::AchievementFromStagedID($extra['achievid'], $stage);
+						if ($achiev !== false) {
+							$auser = MediaWikiServices::getInstance()->getUserFactory()->newFromId($row['event_agent_id']);
+							$ts = wfTimestampOrNull(TS_UNIX, $row['notification_timestamp']);
+
+							$out->addHTML('<li>' . $auser->getName() . ': ' .
+								$this->msg('notification-body-' . $row['event_type'])->rawParams($achiev->getNameMsg($stage), $achiev->getDescMsg($stage)) .
+								($ts ? $this->msg('parentheses')->rawParams($lang->userTimeAndDate($ts, $user))->escaped() : '') . '</li>');
 						}
 					}
-					$out->addHTML( '</ul>' );
+					$out->addHTML('</ul>');
 				}
 				break;
 			case self::MODE_USER:
-				$out->setPageTitle( $this->msg( 'manageachievements-mode-user' ) );
-				$this->showUserForm( 'processUserInput' );
-				$out->addModules( [ 'ext.pref.achievement' ] );
+				$out->setPageTitle($this->msg('manageachievements-mode-user'));
+				$this->showUserForm('processUserInput');
+				$out->addModules(['ext.pref.achievement']);
 				break;
 			case self::MODE_MSG:
-				$out->setPageTitle( $this->msg( 'manageachievements-mode-msg' ) );
+				$out->setPageTitle($this->msg('manageachievements-mode-msg'));
 				$list = AchievementHandler::AchievementsFromAll();
 				$json = [];
 
-				foreach ( $list as &$achiev ) {
+				foreach ($list as &$achiev) {
 					$namekeys = $achiev->listNameMsgKeys();
 					$desckeys = $achiev->listDescMsgKeys();
-					foreach ( $namekeys as $i => $msgkey ) {
-						$json[$msgkey] = $this->msg( $msgkey )->exists() ? $this->msg( $msgkey )->plain() : '';
-						$json[$desckeys[$i]] = $this->msg( $desckeys[$i] )->exists() ? $this->msg( $desckeys[$i] )->plain() : '';
+					foreach ($namekeys as $i => $msgkey) {
+						$json[$msgkey] = $this->msg($msgkey)->exists() ? $this->msg($msgkey)->plain() : '';
+						$json[$desckeys[$i]] = $this->msg($desckeys[$i])->exists() ? $this->msg($desckeys[$i])->plain() : '';
 					}
 				}
-				$out->addHTML( '<textarea rows="40">' . htmlspecialchars(
-					preg_replace( '/^\s+/m', "\t", json_encode( $json, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE ) )
-				) . '</textarea>' );
+				$out->addHTML('<textarea rows="40">' . htmlspecialchars(
+					preg_replace('/^\s+/m', "\t", json_encode($json, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE))
+				) . '</textarea>');
 				break;
 			case self::MODE_RANKING:
 				global $wgAchievementsScoring;
 
-				$out->setPageTitle( $this->msg( 'manageachievements-mode-ranking' ) );
-				$dbw = wfGetDB( DB_SLAVE );
+				$out->setPageTitle($this->msg('manageachievements-mode-ranking'));
+				$dbw = wfGetDB(DB_REPLICA);
 
 				$res = $dbw->select(
 					'achievements',
-					[ 'ac_user', 'COUNT(1) as ac_count' ],
-					[ 'ac_date IS NOT NULL' ],
+					['ac_user', 'COUNT(1) as ac_count'],
+					['ac_date IS NOT NULL'],
 					__METHOD__,
-					[ 'ORDER BY' => 'ac_count DESC', 'GROUP BY' => 'ac_user', 'LIMIT' => 100 ]
+					['ORDER BY' => 'ac_count DESC', 'GROUP BY' => 'ac_user', 'LIMIT' => 100]
 				);
-				if ( $res ) {
+				if ($res) {
 					$out->addHTML(
-						Html::openElement( 'table', [ 'class' => 'wikitable sortable' ] ) .
-						Html::openElement( 'tr' ) .
-						Html::rawElement( 'th', [], $this->msg( 'manage-achiev-ranking-user' )->text() ) .
-						Html::rawElement( 'th', [], $this->msg( 'manage-achiev-ranking-achiev' )->text() ) .
-						( $wgAchievementsScoring ?
-							Html::rawElement( 'th', [], $this->msg( 'manage-achiev-ranking-score' )->text() ) .
-							Html::rawElement( 'th', [], $this->msg( 'manage-achiev-ranking-level' )->text() )
+						Html::openElement('table', ['class' => 'wikitable sortable']) .
+						Html::openElement('tr') .
+						Html::rawElement('th', [], $this->msg('manage-achiev-ranking-user')->text()) .
+						Html::rawElement('th', [], $this->msg('manage-achiev-ranking-achiev')->text()) .
+						($wgAchievementsScoring ?
+							Html::rawElement('th', [], $this->msg('manage-achiev-ranking-score')->text()) .
+							Html::rawElement('th', [], $this->msg('manage-achiev-ranking-level')->text())
 							: ''
 						) .
-						Html::closeElement( 'tr' )
+						Html::closeElement('tr')
 					);
-					while ( $row = $res->fetchRow() ) {
-						$cuser = User::newFromId( $row['ac_user'] );
-						$uscore = AchievementHandler::getUserScore( $cuser );
-						$ulevel = AchievementHandler::Score2Level( $uscore );
+					while ($row = $res->fetchRow()) {
+						$cuser = MediaWikiServices::getInstance()->getUserFactory()->newFromId($row['ac_user']);
+						$uscore = AchievementHandler::getUserScore($cuser);
+						$ulevel = AchievementHandler::Score2Level($uscore);
 						$out->addHTML(
-							Html::openElement( 'tr' ) .
-							Html::rawElement( 'td', [], $cuser->getName() ) .
-							Html::rawElement( 'td', [], $row['ac_count'] ) .
-							( $wgAchievementsScoring ?
-								Html::rawElement( 'td', [], $uscore ) .
-								Html::rawElement( 'td', [], $ulevel )
+							Html::openElement('tr') .
+							Html::rawElement('td', [], $cuser->getName()) .
+							Html::rawElement('td', [], $row['ac_count']) .
+							($wgAchievementsScoring ?
+								Html::rawElement('td', [], $uscore) .
+								Html::rawElement('td', [], $ulevel)
 								: ''
 							) .
-							Html::closeElement( 'tr' )
+							Html::closeElement('tr')
 						);
 					}
-					$out->addHTML( Html::closeElement( 'table' ) );
+					$out->addHTML(Html::closeElement('table'));
 				}
 				break;
 			case self::MODE_SCORING:
 				global $wgAchievementsScoring;
 
-				$out->setPageTitle( $this->msg( 'manageachievements-mode-scoring' ) );
-				
-				if ( !$wgAchievementsScoring ) {
-					$out->addHTML( $this->msg( 'manage-achiev-disable-scoring' ) );
+				$out->setPageTitle($this->msg('manageachievements-mode-scoring'));
+
+				if (!$wgAchievementsScoring) {
+					$out->addHTML($this->msg('manage-achiev-disable-scoring'));
 					break;
 				}
 				$allachievs = AchievementHandler::AchievementsFromAll();
-				
+
 				$list = [];
-				foreach ( $allachievs as &$achiev ) {
+				foreach ($allachievs as &$achiev) {
 					$thresholds = $achiev->getConfig('threshold', 1);
-					if ( $achiev->isStaged() ) {
-						foreach ( $thresholds as $stage ) {
+					if ($achiev->isStaged()) {
+						foreach ($thresholds as $stage) {
 							$c = $achiev->getStageScore($stage);
-							if ( $c !== false ) $list[$achiev->getStageName($stage)] = $c;
+							if ($c !== false)
+								$list[$achiev->getStageName($stage)] = $c;
 						}
 					} else {
 						$c = $achiev->getStageScore();
-						if ( $c !== false ) $list[$achiev->getStageName()] = $c;
+						if ($c !== false)
+							$list[$achiev->getStageName()] = $c;
 					}
 				}
 				arsort($list, SORT_NUMERIC);
-				$out->addHTML( '<ol>' );
-				foreach ( $list as $stagename => $score ) {
-					$achiev = AchievementHandler::AchievementFromStagedID( $stagename, $stage );
-					if ( $achiev !== false ) {
-						$out->addHTML( '<li>('.$stagename.') '.$achiev->getNameMsg( $stage ) . $this->msg( 'parentheses' )->rawParams( $achiev->getDescMsg( $stage ) )->text() .': '. $score .'</li>' );
+				$out->addHTML('<ol>');
+				foreach ($list as $stagename => $score) {
+					$achiev = AchievementHandler::AchievementFromStagedID($stagename, $stage);
+					if ($achiev !== false) {
+						$out->addHTML('<li>(' . $stagename . ') ' . $achiev->getNameMsg($stage) . $this->msg('parentheses')->rawParams($achiev->getDescMsg($stage))->text() . ': ' . $score . '</li>');
 					}
 				}
-				$out->addHTML( '</ol>' );
+				$out->addHTML('</ol>');
 				break;
 			case self::MODE_TOKEN:
-				$out->setPageTitle( $this->msg( 'manageachievements-mode-token' ) );
-				$this->showTokenForm( 'processTokenInput' );
+				$out->setPageTitle($this->msg('manageachievements-mode-token'));
+				$this->showTokenForm('processTokenInput');
 				break;
 			case self::MODE_TOKENS:
-				$out->setPageTitle( $this->msg( 'manageachievements-mode-tokens' ) );
-				$delete = trim( $request->getVal( 'delete', '' ) );
-				
-				if ( !empty( $delete ) ) {
-					Token::deleteByHash( $delete );
-					$out->redirect( SpecialPage::getTitleFor( 'ManageAchievements', 'tokens' ) );
+				$out->setPageTitle($this->msg('manageachievements-mode-tokens'));
+				$delete = trim($request->getVal('delete', ''));
+
+				if (!empty($delete)) {
+					Token::deleteByHash($delete);
+					$out->redirect(SpecialPage::getTitleFor('ManageAchievements', 'tokens'));
 					break;
 				}
 
-				$dbw = wfGetDB( DB_SLAVE );
-				$keyprefix = str_replace( '@@', '', Token::getMemcKey( '@@' ) );
+				$cache = MediaWikiServices::getInstance()->getMainObjectStash();
+				$dbw = wfGetDB(DB_REPLICA);
+				$keyprefix = str_replace('@@', '', Token::getMemcKey($cache, '@@'));
 
 				$res = $dbw->select(
 					'objectcache',
-					[ 'keyname', 'exptime' ],
-					[ 'keyname ' . $dbw->buildLike( $keyprefix, $dbw->anyString() ) ],
+					['keyname', 'exptime'],
+					['keyname ' . $dbw->buildLike($keyprefix, $dbw->anyString())],
 					__METHOD__,
-					[ 'ORDER BY' => 'exptime ASC', 'LIMIT' => 2000 ]
+					['ORDER BY' => 'exptime ASC', 'LIMIT' => 2000]
 				);
-				if ( $res ) {
+				if ($res) {
 					$linkRenderer = $this->getLinkRenderer();
 
 					$keylist = [];
 					$explist = [];
-					foreach ( $res as $row ) {
+					foreach ($res as $row) {
 						$keylist[] = $row->keyname;
 						$explist[$row->keyname] = $row->exptime;
 					}
-					$cache = MediaWikiServices::getInstance()->getMainObjectStash();
-					$datalist = $cache->getMulti( $keylist );
-					
-					$out->addHTML(
-						Html::openElement( 'table', [ 'class' => 'wikitable sortable' ] ) .
-						Html::openElement( 'tr' ) .
-						Html::rawElement( 'th', [], $this->msg( 'manage-achiev-tokens-hash' )->text() ) .
-						Html::rawElement( 'th', [], $this->msg( 'manage-achiev-tokens-achievid' )->text() ) .
-						Html::rawElement( 'th', [], $this->msg( 'manage-achiev-tokens-user' )->text() ) .
-						Html::rawElement( 'th', [], $this->msg( 'manage-achiev-tokens-target' )->text() ) .
-						Html::rawElement( 'th', [], $this->msg( 'manage-achiev-tokens-count' )->text() ) .
-						Html::rawElement( 'th', [], $this->msg( 'manage-achiev-tokens-limit' )->text() ) .
-						Html::rawElement( 'th', [], $this->msg( 'manage-achiev-tokens-exptime' )->text() ) .
-						Html::rawElement( 'th', [], $this->msg( 'delete' )->text() ) .
-						Html::closeElement( 'tr' )
-					);
-					foreach ( $datalist as $key => &$data ) {
-						if ( empty( $data ) || !isset( $data['achiev'] ) ) continue;
-						$hash = str_replace( $keyprefix, '', $key );
-						$out->addHTML( Html::openElement( 'tr' ) );
-						$out->addHTML( Html::rawElement( 'td', [], $hash ) );
-						$out->addHTML( Html::rawElement( 'td', [], $data['achiev'] ) );
-						if ( !empty( $data['user'] ) ) {
-							$out->addHTML( Html::rawElement( 'td', [], User::whoIs( $data['user'] ) ) );
-						} else {
-							$out->addHTML( Html::rawElement( 'td', [], '' ) );
-						}
-						if ( !empty( $data['target'] ) ) {
-							$out->addHTML( Html::rawElement( 'td', [], User::whoIs( $data['target'] ) ) );
-						} else {
-							$out->addHTML( Html::rawElement( 'td', [], '' ) );
-						}
-						if ( isset( $data['count'] ) ) {
-							$out->addHTML( Html::rawElement( 'td', [], $data['count'] ) );
-						} else{
-							$out->addHTML( Html::rawElement( 'td', [], '' ) );
-						}
-						if ( isset( $data['limit'] ) ) {
-							$out->addHTML( Html::rawElement( 'td', [], $data['limit'] ) );
-						} else{
-							$out->addHTML( Html::rawElement( 'td', [], '' ) );
-						}
-						$out->addHTML( Html::rawElement( 'td', [ 'data-sort-value' => $explist[$key] ], $lang->userTimeAndDate( $explist[$key], $user ) ) );
+					$datalist = $cache->getMulti($keylist);
 
-						$out->addHTML( Html::rawElement( 'td', [], $linkRenderer->makeKnownLink(
-							SpecialPage::getTitleFor( 'ManageAchievements', 'tokens' ),
-							$this->msg( 'delete' )->text(),
-							[],
-							['delete' => $hash]
-						) ) );
-						$out->addHTML( Html::closeElement( 'tr' ) );
+					$out->addHTML(
+						Html::openElement('table', ['class' => 'wikitable sortable']) .
+						Html::openElement('tr') .
+						Html::rawElement('th', [], $this->msg('manage-achiev-tokens-hash')->text()) .
+						Html::rawElement('th', [], $this->msg('manage-achiev-tokens-achievid')->text()) .
+						Html::rawElement('th', [], $this->msg('manage-achiev-tokens-user')->text()) .
+						Html::rawElement('th', [], $this->msg('manage-achiev-tokens-target')->text()) .
+						Html::rawElement('th', [], $this->msg('manage-achiev-tokens-count')->text()) .
+						Html::rawElement('th', [], $this->msg('manage-achiev-tokens-limit')->text()) .
+						Html::rawElement('th', [], $this->msg('manage-achiev-tokens-exptime')->text()) .
+						Html::rawElement('th', [], $this->msg('delete')->text()) .
+						Html::closeElement('tr')
+					);
+					foreach ($datalist as $key => &$data) {
+						if (empty($data) || !isset($data['achiev']))
+							continue;
+						$hash = str_replace($keyprefix, '', $key);
+						$out->addHTML(Html::openElement('tr'));
+						$out->addHTML(Html::rawElement('td', [], $hash));
+						$out->addHTML(Html::rawElement('td', [], $data['achiev']));
+						if (!empty($data['user'])) {
+							$out->addHTML(Html::rawElement('td', [], User::whoIs($data['user'])));
+						} else {
+							$out->addHTML(Html::rawElement('td', [], ''));
+						}
+						if (!empty($data['target'])) {
+							$out->addHTML(Html::rawElement('td', [], User::whoIs($data['target'])));
+						} else {
+							$out->addHTML(Html::rawElement('td', [], ''));
+						}
+						if (isset($data['count'])) {
+							$out->addHTML(Html::rawElement('td', [], $data['count']));
+						} else {
+							$out->addHTML(Html::rawElement('td', [], ''));
+						}
+						if (isset($data['limit'])) {
+							$out->addHTML(Html::rawElement('td', [], $data['limit']));
+						} else {
+							$out->addHTML(Html::rawElement('td', [], ''));
+						}
+						$out->addHTML(Html::rawElement('td', ['data-sort-value' => $explist[$key]], $lang->userTimeAndDate($explist[$key], $user)));
+
+						$out->addHTML(
+							Html::rawElement(
+								'td',
+								[],
+								$linkRenderer->makeKnownLink(
+									SpecialPage::getTitleFor('ManageAchievements', 'tokens'),
+									$this->msg('delete')->text(),
+									[],
+									['delete' => $hash]
+								)
+							)
+						);
+						$out->addHTML(Html::closeElement('tr'));
 					}
-					$out->addHTML( Html::closeElement( 'table' ) );
+					$out->addHTML(Html::closeElement('table'));
 				}
 				break;
 			case self::MODE_TEST_TOKEN:
-				$out->setPageTitle( $this->msg( 'manageachievements-mode-prog' ) );
-				$this->showAchievForm( 'processTestTokenInput' );
+				$out->setPageTitle($this->msg('manageachievements-mode-prog'));
+				$this->showAchievForm('processTestTokenInput');
 				break;
 			case self::MODE_OTHER:
-				$dbw = wfGetDB( DB_SLAVE );
+				$dbw = wfGetDB(DB_REPLICA);
 				$res = $dbw->select(
 					'dish_game',
-					[ 'user_id', 'COUNT(1) as dish', 'MAX(get_date) as dish_date' ],
-					[ 'user_id > 0' ],
+					['user_id', 'COUNT(1) as dish', 'MAX(get_date) as dish_date'],
+					['user_id > 0'],
 					__METHOD__,
-					[ 'GROUP BY' => 'user_id', 'HAVING'=>'dish = 109' ]
+					['GROUP BY' => 'user_id', 'HAVING' => 'dish = 109']
 				);
-				$out->addHTML( '<ul>' );
-				if ( $res ) {
-					foreach ( $res as $row ) {
-						$out->addHTML( '<li>'.$row->user_id.': '. $row->dish.' ' .$row->dish_date. "</li>\n" );
+				$out->addHTML('<ul>');
+				if ($res) {
+					foreach ($res as $row) {
+						$out->addHTML('<li>' . $row->user_id . ': ' . $row->dish . ' ' . $row->dish_date . "</li>\n");
 					}
 				}
-				$out->addHTML( '</ul>' );
+				$out->addHTML('</ul>');
 				break;
 			case self::MODE_RANDOM:
-				$out->setPageTitle( $this->msg( 'manageachievements-mode-random' ) );
-				$list = AchievementHandler::AchievementsFromCounter( 'random' );
-				$clear = trim( $request->getVal( 'clear', '' ) );
-				$out->addHTML( '<ul>' );
-				foreach ( $list as $ac ) {
+				$out->setPageTitle($this->msg('manageachievements-mode-random'));
+				$list = AchievementHandler::AchievementsFromCounter('random');
+				$clear = trim($request->getVal('clear', ''));
+				$out->addHTML('<ul>');
+				foreach ($list as $ac) {
 					$cleared = false;
-					if ( $ac->getID() === $clear ) {
+					if ($ac->getID() === $clear) {
 						$ac->getCounter()->clearNextTimestamp();
 						$cleared = true;
 					}
-					$out->addHTML( '<li>'.$ac->getID().': '.date('Y-m-d H:i:s', $ac->getCounter()->getNextTimestamp() ).($cleared?' (NEW)':'')."</li>\n" );
+					$out->addHTML('<li>' . $ac->getID() . ': ' . date('Y-m-d H:i:s', $ac->getCounter()->getNextTimestamp()) . ($cleared ? ' (NEW)' : '') . "</li>\n");
 				}
-				$out->addHTML( '</ul>' );
+				$out->addHTML('</ul>');
 				break;
 			default:
-				
+
 		}
 
-		$out->addHTML( $this->successMessage );
+		$out->addHTML($this->successMessage);
 
 		return;
 	}
 
-	protected function showAchievForm ( $callback ) {
+	protected function showAchievForm($callback)
+	{
 		$formDescriptor = array(
 			'achiev' => array(
 				'label-message' => 'manage-achiev-name',
@@ -489,19 +506,20 @@ class SpecialManageAchievements extends SpecialPage {
 			),
 		);
 
-		$htmlForm = new HTMLForm( $formDescriptor, $this->getContext(), 'manage-achiev' );
-		$htmlForm->setWrapperLegend( '' );
+		$htmlForm = new HTMLForm($formDescriptor, $this->getContext(), 'manage-achiev');
+		$htmlForm->setWrapperLegend('');
 
-		$htmlForm->setMethod( 'get' );
-		$htmlForm->setSubmitText( $this->msg('htmlform-submit') );
-		$htmlForm->setSubmitCallback( [ $this, $callback ] );
+		$htmlForm->setMethod('get');
+		$htmlForm->setSubmitText($this->msg('htmlform-submit'));
+		$htmlForm->setSubmitCallback([$this, $callback]);
 
-		$this->getOutput()->addModules( 'ext.achievementSuggest' );
+		$this->getOutput()->addModules('ext.achievementSuggest');
 
 		return $htmlForm->show();
 	}
 
-	protected function showUserForm ( $callback ) {
+	protected function showUserForm($callback)
+	{
 		$formDescriptor = array(
 			'user' => array(
 				'label-message' => 'manage-achiev-user',
@@ -511,19 +529,20 @@ class SpecialManageAchievements extends SpecialPage {
 			),
 		);
 
-		$htmlForm = new HTMLForm( $formDescriptor, $this->getContext(), 'manage-achiev' );
-		$htmlForm->setWrapperLegend( '' );
+		$htmlForm = new HTMLForm($formDescriptor, $this->getContext(), 'manage-achiev');
+		$htmlForm->setWrapperLegend('');
 
-		$htmlForm->setMethod( 'get' );
-		$htmlForm->setSubmitText( $this->msg('htmlform-submit') );
-		$htmlForm->setSubmitCallback( [ $this, $callback ] );
+		$htmlForm->setMethod('get');
+		$htmlForm->setSubmitText($this->msg('htmlform-submit'));
+		$htmlForm->setSubmitCallback([$this, $callback]);
 
-		$this->getOutput()->addModules( 'mediawiki.userSuggest' );
+		$this->getOutput()->addModules('mediawiki.userSuggest');
 
 		return $htmlForm->show();
 	}
 
-	protected function showTokenForm ( $callback ) {
+	protected function showTokenForm($callback)
+	{
 		$formDescriptor = array(
 			'achiev' => array(
 				'label-message' => 'manage-achiev-name',
@@ -559,40 +578,41 @@ class SpecialManageAchievements extends SpecialPage {
 			),
 		);
 
-		$htmlForm = new HTMLForm( $formDescriptor, $this->getContext(), 'manage-achiev' );
-		$htmlForm->setWrapperLegend( '' );
+		$htmlForm = new HTMLForm($formDescriptor, $this->getContext(), 'manage-achiev');
+		$htmlForm->setWrapperLegend('');
 
-		$htmlForm->setMethod( 'post' );
-		$htmlForm->setSubmitText( $this->msg('htmlform-submit') );
-		$htmlForm->setSubmitCallback( [ $this, $callback ] );  
+		$htmlForm->setMethod('post');
+		$htmlForm->setSubmitText($this->msg('htmlform-submit'));
+		$htmlForm->setSubmitCallback([$this, $callback]);
 
-		$this->getOutput()->addModules( 'mediawiki.userSuggest' );
-		$this->getOutput()->addModules( 'ext.achievementSuggest' );
+		$this->getOutput()->addModules('mediawiki.userSuggest');
+		$this->getOutput()->addModules('ext.achievementSuggest');
 
 		return $htmlForm->show();
 	}
 
-	public function processProgInput ( $data ) {
-		if ( !empty( $data['achiev'] ) ) {
+	public function processProgInput($data)
+	{
+		if (!empty($data['achiev'])) {
 			$id = $data['achiev'];
-			$achiev = AchievementHandler::AchievementFromID( $id );
-			if ( $achiev ) {
-				$dbw = wfGetDB( DB_SLAVE );
+			$achiev = AchievementHandler::AchievementFromID($id);
+			if ($achiev) {
+				$dbw = wfGetDB(DB_REPLICA);
 
 				$res = $dbw->select(
 					'achievements',
-					[ 'ac_user', 'ac_count' ],
-					[ 'ac_id' => $id, 'ac_count <> 0' ],
+					['ac_user', 'ac_count'],
+					['ac_id' => $id, 'ac_count <> 0'],
 					__METHOD__,
-					[ 'ORDER BY' => 'ac_count DESC', 'LIMIT' => 200 ]
+					['ORDER BY' => 'ac_count DESC', 'LIMIT' => 200]
 				);
-				$count = $dbw->numRows( $res );
-				$this->successMessage .= $achiev->getNameMsg() . $this->msg( 'manage-achiev-user-count' )->rawParams( $count == 200?'200+':$count )->escaped() . '<br/>';
-				if ( $res ) {
+				$count = $res->numRows();
+				$this->successMessage .= $achiev->getNameMsg() . $this->msg('manage-achiev-user-count')->rawParams($count == 200 ? '200+' : $count)->escaped() . '<br/>';
+				if ($res) {
 					$lr = $this->getLinkRenderer();
 					$this->successMessage .= '<ol>';
-					while ( $row = $res->fetchRow() ) {
-						$this->successMessage .= '<li>' . User::whoIs( $row['ac_user'] ) . ': ' . $row['ac_count'] . '</li>';
+					while ($row = $res->fetchRow()) {
+						$this->successMessage .= '<li>' . User::whoIs($row['ac_user']) . ': ' . $row['ac_count'] . '</li>';
 					}
 					$this->successMessage .= '</ol>';
 				}
@@ -601,142 +621,154 @@ class SpecialManageAchievements extends SpecialPage {
 		return false;
 	}
 
-	public function processAchieverInput ( $data ) {
-		if ( !empty( $data['achiev'] ) ) {
+	public function processAchieverInput($data)
+	{
+		if (!empty($data['achiev'])) {
 			$id = $data['achiev'];
 			$stage = 0;
-			$achiev = AchievementHandler::AchievementFromStagedID( $id, $stage );
-			if ( $achiev ) {
-				$dbw = wfGetDB( DB_SLAVE );
+			$achiev = AchievementHandler::AchievementFromStagedID($id, $stage);
+			if ($achiev) {
+				$dbw = wfGetDB(DB_REPLICA);
 
-				$list = AchievementHandler::getAchievers( $id );
-				$this->successMessage .= $achiev->getNameMsg( $stage ) . $this->msg( 'manage-achiev-user-count' )->rawParams( count( $list ) )->escaped() . '<br/>';
-				$this->successMessage .=  '<ul>';
-				foreach ( $list as $userid ) {
-					$this->successMessage .= '<li>'.User::whoIs( $userid ).'</li>';
+				$list = AchievementHandler::getAchievers($id);
+				$this->successMessage .= $achiev->getNameMsg($stage) . $this->msg('manage-achiev-user-count')->rawParams(count($list))->escaped() . '<br/>';
+				$this->successMessage .= '<ul>';
+				foreach ($list as $userid) {
+					$this->successMessage .= '<li>' . User::whoIs($userid) . '</li>';
 				}
-				$this->successMessage .=  '</ul>';
+				$this->successMessage .= '</ul>';
 			}
 		}
 		return false;
 	}
 
-	public function processUserInput ( $data ) {
-		if ( !empty( $data['user'] ) ) {
-			if ( is_string( $data['user'] ) && ($data['user'] = trim( $data['user'] )) !== '' ) {
-				$user = User::newFromName( $data['user'] );
+	public function processUserInput($data)
+	{
+		if (!empty($data['user'])) {
+			if (is_string($data['user']) && ($data['user'] = trim($data['user'])) !== '') {
+				$user = MediaWikiServices::getInstance()->getUserFactory()->newFromName($data['user']);
 			}
-			if ( !($user instanceof User) || $user->isAnon() || $user->isBlocked() ) {
+			if (!($user instanceof User) || $user->isAnon() || $user->getBlock()) {
 				return false;
 			}
-			AchievementHandler::updateUserAchievs( $user );
+			AchievementHandler::updateUserAchievs($user);
 			$allachievs = AchievementHandler::AchievementsFromAll();
-			AchievementHandler::sortAchievements( $allachievs );
-			$userachievs = AchievementHandler::getUserAchievs( $user );
-			$counts = AchievementHandler::getUserCounts( $user );
-			
+			AchievementHandler::sortAchievements($allachievs);
+			$userachievs = AchievementHandler::getUserAchievs($user);
+			$counts = AchievementHandler::getUserCounts($user);
+
 			$this->successMessage = '';
-			foreach ( $allachievs as &$achiev ) {
+			foreach ($allachievs as &$achiev) {
 				$id = $achiev->getID();
-				if ( empty( $userachievs[$id] ) ) {
-					if ( !$achiev->getConfig( 'hidden', false ) ) {
-						$this->successMessage .= \ExtAchievement::buildAchievBlock( $achiev, [], $counts, $user );
+				if (empty($userachievs[$id])) {
+					if (!$achiev->getConfig('hidden', false)) {
+						$this->successMessage .= \ExtAchievement::buildAchievBlock($achiev, [], $counts, $user);
 					}
 				} else {
 					$tss = $userachievs[$id];
-					$this->successMessage .= \ExtAchievement::buildAchievBlock( $achiev, $tss, $counts, $user );
+					$this->successMessage .= \ExtAchievement::buildAchievBlock($achiev, $tss, $counts, $user);
 				}
 			}
 		}
 		return false;
 	}
-	
-	public function processTokenInput ( $data ) {
-		if ( !empty( $data['achiev'] ) ) {
+
+	public function processTokenInput($data)
+	{
+		if (!empty($data['achiev'])) {
 			$stage = 0;
-			$stagename = trim( $data['achiev'] );
-			$achiev = AchievementHandler::AchievementFromStagedID( $stagename, $stage );
-			if ( $achiev ) {
+			$stagename = trim($data['achiev']);
+			$achiev = AchievementHandler::AchievementFromStagedID($stagename, $stage);
+			if ($achiev) {
 				$opt = [];
-				if ( !empty( $data['target'] ) ) $opt['target'] = User::newFromName( $data['target'] );
+				if (!empty($data['target']))
+					$opt['target'] = MediaWikiServices::getInstance()->getUserFactory()->newFromName($data['target']);
 
-				if ( !empty( $data['count'] ) ) $opt['count'] = intval( $data['count'] );
+				if (!empty($data['count']))
+					$opt['count'] = intval($data['count']);
 
-				if ( !empty( $data['limit'] ) ) $opt['limit'] = max( 1, intval( $data['limit'] ) );
-				else $opt['limit'] = 1;
+				if (!empty($data['limit']))
+					$opt['limit'] = max(1, intval($data['limit']));
+				else
+					$opt['limit'] = 1;
 
-				if ( !empty( $data['time'] ) ) $opt['time'] = intval( $data['time'] );
-				else $opt['time'] = 86400;
+				if (!empty($data['time']))
+					$opt['time'] = intval($data['time']);
+				else
+					$opt['time'] = 86400;
 
-				if ( !empty( $data['batch'] ) ) $batch = intval( $data['batch'] );
-				else $batch = 1;
+				if (!empty($data['batch']))
+					$batch = intval($data['batch']);
+				else
+					$batch = 1;
 
-				if ( isset( $opt['target'] ) && $opt['target'] instanceof \User ) {
-					$this->successMessage .= $this->msg( 'manage-achiev-token-user' )->parse() . $opt['target']->getName() . '<br />';
+				if (isset($opt['target']) && $opt['target'] instanceof User) {
+					$this->successMessage .= $this->msg('manage-achiev-token-user')->parse() . $opt['target']->getName() . '<br />';
 				}
-				if ( isset( $opt['count'] ) ) {
-					$this->successMessage .= $this->msg( 'manage-achiev-token-count' )->parse() . $opt['count'] . '<br />';
+				if (isset($opt['count'])) {
+					$this->successMessage .= $this->msg('manage-achiev-token-count')->parse() . $opt['count'] . '<br />';
 				}
-				if ( isset( $opt['limit'] ) ) {
-					$this->successMessage .= $this->msg( 'manage-achiev-token-limit' )->parse() . $opt['limit'] . '<br />';
+				if (isset($opt['limit'])) {
+					$this->successMessage .= $this->msg('manage-achiev-token-limit')->parse() . $opt['limit'] . '<br />';
 				}
-				if ( isset( $opt['time'] ) ) {
-					$this->successMessage .= $this->msg( 'manage-achiev-token-time' )->parse() . $opt['time'] . '<br />';
+				if (isset($opt['time'])) {
+					$this->successMessage .= $this->msg('manage-achiev-token-time')->parse() . $opt['time'] . '<br />';
 				}
 
 				$this->successMessage .= (
-					Html::openElement( 'table', [ 'class' => 'wikitable sortable' ] ) .
-					Html::openElement( 'tr' ) .
-					Html::rawElement( 'th', [], 'QR Code' ) .
-					Html::rawElement( 'th', [], 'Code' ) .
-					Html::rawElement( 'th', [], 'URL' ) .
+					Html::openElement('table', ['class' => 'wikitable sortable']) .
+					Html::openElement('tr') .
+					Html::rawElement('th', [], 'QR Code') .
+					Html::rawElement('th', [], 'Code') .
+					Html::rawElement('th', [], 'URL') .
 					//Html::rawElement( 'th', [], $this->msg( 'manage-achiev-tokens-hash' )->text() ) .
-					Html::closeElement( 'tr' )
+					Html::closeElement('tr')
 				);
-				for ( $num = 0; $num < $batch; ++$num ) {
-					$token = Token::getToken( $this->getUser(), $achiev, $stage, $opt );
-					if ( $token ) {
-						$this->successMessage .= Html::openElement( 'tr' );
-						$this->successMessage .= Html::rawElement( 'td', [], $this->getQRCode( $token->toUrl() ) );
-						$this->successMessage .= Html::element( 'td', [], $token->toString() );
-						$this->successMessage .= Html::rawElement( 'td', [], Html::element( 'a', ['target' =>'_blank', 'href' => $token->toUrl() ], 'URL' ) );
-						//$this->successMessage .= Html::element( 'td', [], $token->getTokenMemcKey() );
-						$this->successMessage .= Html::closeElement( 'tr' );
+				for ($num = 0; $num < $batch; ++$num) {
+					$token = Token::getToken($this->getUser(), $achiev, $stage, $opt);
+					if ($token) {
+						$this->successMessage .= Html::openElement('tr');
+						$this->successMessage .= Html::rawElement('td', [], $this->getQRCode($token->toUrl()));
+						$this->successMessage .= Html::element('td', [], $token->toString());
+						$this->successMessage .= Html::rawElement('td', [], Html::element('a', ['target' => '_blank', 'href' => $token->toUrl()], 'URL'));
+						$this->successMessage .= Html::closeElement('tr');
 					} else {
-						if ( $achiev->isAwardable() ) {
-							$this->successMessage .= Html::closeElement( 'table' );
-							return $this->msg( 'manage-achiev-token-fail' )->parse();
+						if ($achiev->isAwardable()) {
+							$this->successMessage .= Html::closeElement('table');
+							return $this->msg('manage-achiev-token-fail')->parse();
 						} else {
-							$this->successMessage .= Html::closeElement( 'table' );
-							return $this->msg( 'manage-achiev-token-notawardable' )->parse();
+							$this->successMessage .= Html::closeElement('table');
+							return $this->msg('manage-achiev-token-notawardable')->parse();
 						}
 					}
 				}
-				$this->successMessage .= Html::closeElement( 'table' );
+				$this->successMessage .= Html::closeElement('table');
 			} else {
-				return $this->msg( 'manage-achiev-token-invalid' )->parse();
+				return $this->msg('manage-achiev-token-invalid')->parse();
 			}
 		}
 		return false;
 	}
-	
-	public function processTestTokenInput( $data ){
-		if ( !empty( $data['achiev'] ) ) {
+
+	public function processTestTokenInput($data)
+	{
+		if (!empty($data['achiev'])) {
 			$str = $data['achiev'];
 			$token = new Token($str);
-			$this->successMessage .= $token->getTokenMemcKey();
 			$cache = MediaWikiServices::getInstance()->getMainObjectStash();
-			$data = $cache->get( $token->getTokenMemcKey() );
-			$this->successMessage .= '<pre>'.htmlspecialchars(var_export($data, true)).'</pre>';
+			$this->successMessage .= $token->getTokenMemcKey($cache);
+			$data = $cache->get($token->getTokenMemcKey($cache));
+			$this->successMessage .= '<pre>' . htmlspecialchars(var_export($data, true)) . '</pre>';
 		}
 		return false;
 	}
 
-	private function getQRCode ( $url ) {
-		if ( !class_exists( '\\QRLiteHooks' ) ) return '';
-		global $wgParser;
-		$res = \QRLiteHooks::qrliteFunctionHook( $wgParser, $url, 'format=png', 'size=5', 'ecc=2', 'margin=2' );
-		return is_array( $res ) && isset( $res[0] ) ? $res[0] : '';
+	private function getQRCode($url)
+	{
+		if (!\ExtensionRegistry::getInstance()->isLoaded('QRLite'))
+			return '';
+		$res = \MediaWiki\Extension\QRLite\QRLiteHooks::qrliteFunctionHook(MediaWikiServices::getInstance()->getParser(), $url, 'format=png', 'size=5', 'ecc=2', 'margin=2');
+		return is_array($res) && isset($res[0]) ? $res[0] : '';
 	}
 
 }

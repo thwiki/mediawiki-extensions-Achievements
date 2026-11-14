@@ -2,25 +2,31 @@
 
 namespace Achiev;
 
-class FoeTopCounter extends FoeCountCounter  {
+class FoeTopCounter extends FoeCountCounter
+{
 
-	public function isStageReversed () {
+	public function isStageReversed()
+	{
 		return true;
 	}
 
-	public function hasRealThreshold () {
+	public function hasRealThreshold()
+	{
 		return true;
 	}
 
-	public function getRealThreshold ( $pos = 0 ) {
-		return $this->getPositionCount( 1 );
+	public function getRealThreshold($pos = 0)
+	{
+		return $this->getPositionCount(1);
 	}
 
-	public function isQualify ( $count, $threshold = 1 ) {
-		return $count > 0 && $count === $this->getPositionCount( $threshold ) && $count !== $this->getPositionCount( $threshold + 1 );
+	public function isQualify($count, $threshold = 1)
+	{
+		return $count > 0 && $count === $this->getPositionCount($threshold) && $count !== $this->getPositionCount($threshold + 1);
 	}
 
-	public function defaultConfig () {
+	public function defaultConfig()
+	{
 		return [
 			'init' => 0,
 		];

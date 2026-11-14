@@ -6,24 +6,24 @@
  * @ingroup Extensions
  */
 
-$specialPageAliases = array();
+$specialPageAliases = [];
 
-$specialPageAliases['en'] = array(
-	'ManageAchievements' => array( 'ManageAchievements' ),
-	'RedeemAchievement' => array( 'RedeemAchievement', 'RA' ),
-);
+$specialPageAliases['en'] = [
+	'ManageAchievements' => ['ManageAchievements'],
+	'RedeemAchievement' => ['RedeemAchievement', 'RA'],
+];
 
-$specialPageAliases['zh'] = array(
-	'ManageAchievements' => array( '管理成就' ),
-	'RedeemAchievement' => array( '兑换成就' ),
-);
+$specialPageAliases['zh'] = [
+	'ManageAchievements' => ['管理成就'],
+	'RedeemAchievement' => ['兑换成就'],
+];
 
-$specialPageAliases['zh-hans'] = array(
-	'ManageAchievements' => array( '管理成就' ),
-	'RedeemAchievement' => array( '兑换成就' ),
-);
+$specialPageAliases['zh-hans'] = [
+	'ManageAchievements' => ['管理成就'],
+	'RedeemAchievement' => ['兑换成就'],
+];
 
-$specialPageAliases['zh-hant'] = array(
-	'ManageAchievements' => array( '管理成就' ),
-	'RedeemAchievement' => array( '兑换成就' ),
-);
+$specialPageAliases['zh-hant'] = [
+	'ManageAchievements' => ['管理成就'],
+	'RedeemAchievement' => ['兑换成就'],
+];

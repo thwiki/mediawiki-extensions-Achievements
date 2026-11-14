@@ -1,6 +1,7 @@
 <?php
 
 namespace Achiev;
+
 /**
  *
  * Achievements
@@ -8,15 +9,16 @@ namespace Achiev;
  * @author Arumi
  */
 
-if ( !defined( 'MEDIAWIKI' ) ) die();
+if (!defined('MEDIAWIKI'))
+	die();
 
-define( 'ACHIV_VERSION', '0.7.0' );
+define('ACHIV_VERSION', '0.7.0');
 
 $wgExtensionCredits['parserhook'][] = [
 	'path' => __FILE__,
 	'name' => 'Achievements',
 	'version' => ACHIV_VERSION,
-	'author' => [ '[https://thwiki.cc/User:Arumi Arumi]' ],
+	'author' => ['[https://thwiki.cc/User:Arumi Arumi]'],
 	'url' => 'https://thwiki.cc/%E5%B8%AE%E5%8A%A9:%E6%88%90%E5%B0%B1%E6%89%A9%E5%B1%95',
 	'descriptionmsg' => 'achievements-desc',
 ];
@@ -29,9 +31,9 @@ $wgAchievementsConfigs = [];
 $wgAchievementsScoring = false;
 
 // 加载设定
-include_once( __DIR__ . '/Achievements.settings.php' );
+include_once(__DIR__ . '/Achievements.settings.php');
 
-$wgMessagesDirs['Achievements'] = [ __DIR__ . '/i18n', __DIR__ . '/achievi18n' ];
+$wgMessagesDirs['Achievements'] = [__DIR__ . '/i18n', __DIR__ . '/achievi18n'];
 $wgExtensionMessagesFiles['AchievementsMagic'] = __DIR__ . '/Achievements.magic.php';
 $wgExtensionMessagesFiles['ManageAchievements'] = __DIR__ . '/Achievements.alias.php';
 
@@ -50,6 +52,10 @@ $wgAutoloadClasses['Achiev\\ApiQueryAllAchievements'] = __DIR__ . '/class/apis/A
 // 用户成就资料API
 $wgAPIMetaModules['achievementinfo'] = 'Achiev\\ApiQueryAchievementInfo';
 $wgAutoloadClasses['Achiev\\ApiQueryAchievementInfo'] = __DIR__ . '/class/apis/ApiQueryAchievementInfo.php';
+
+//$wgAPIModules['apf'] = 'Achiev\\ApiAchievement';
+//$wgAPIModules['hlw'] = 'Achiev\\ApiAchievement';
+//$wgHooks['RevisionDataUpdates'][] = 'Achiev\\ApiAchievement::onRevisionDataUpdates';
 
 // Hook处理类
 $wgAutoloadClasses['ExtAchievement'] = __DIR__ . '/AchievementsHooks.php';
@@ -71,7 +77,8 @@ $wgResourceModules['ext.achievement'] = [
 	'scripts' => 'achievements.js',
 	'styles' => 'achievements.css',
 	'dependencies' => [
-		'jquery.tipsy'
+		'jquery.tipsy',
+		"mediawiki.user",
 	],
 ];
 
@@ -96,11 +103,11 @@ $wgResourceModules['ext.achievementSuggest'] = [
 
 $wgHooks['ParserFirstCallInit'][] = 'ExtAchievement::init';
 $wgHooks['GetPreferences'][] = 'ExtAchievement::onGetPreferences';
-$wgHooks['UserSaveOptions'][] = 'ExtAchievement::onUserSaveOptions';
+$wgHooks['UserSaveSettings'][] = 'ExtAchievement::onUserSaveSettings';
 
 $wgHooks['BeforePageDisplay'][] = 'ExtAchievement::onBeforePageDisplay';
 
-$wgHooks['PersonalUrls'][] = 'ExtAchievement::onPersonalUrls';
+$wgHooks['SkinTemplateNavigation::Universal'][] = 'ExtAchievement::onSkinTemplateNavigation_Universal';
 $wgHooks['HtmlPageLinkRendererEnd'][] = 'ExtAchievement::onHtmlPageLinkRendererEnd';
 $wgHooks['SpecialPageAfterExecute'][] = 'ExtAchievement::onSpecialPageAfterExecute';
 

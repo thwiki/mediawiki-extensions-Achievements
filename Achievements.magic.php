@@ -7,11 +7,11 @@
  * @author Arumi
  */
 
-$magicWords = array();
+$magicWords = [];
 
 /** English
  * @author Arumi
  */
-$magicWords['en'] = array(
-    'achieve' => array( 0, 'achieve' ),
-);
+$magicWords['en'] = [
+	'achieve' => [0, 'achieve'],
+];

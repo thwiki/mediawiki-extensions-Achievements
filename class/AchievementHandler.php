@@ -1,120 +1,161 @@
 <?php
 
 namespace Achiev;
-use \MediaWiki\MediaWikiServices;
 
-class AchievementHandler {
+use \MediaWiki\MediaWikiServices;
+use MediaWiki\User\UserFactory;
+use \User;
+
+class AchievementHandler
+{
 	static protected $list = [];
 
-	static public function configs () {
+	static public function configs()
+	{
 		global $wgAchievementsConfigs;
 		return $wgAchievementsConfigs;
 	}
 
-	static public function handleHook ( $opt ) {
-		$achievs = self::AchievementsFromCounter( $opt[0] );
-		foreach ( $achievs as &$ac ) {
-			if ( !$ac->isStatic() && $ac->isActive() ) {
+	static public function handleHook($opt)
+	{
+		$achievs = self::AchievementsFromCounter($opt[0]);
+		foreach ($achievs as &$ac) {
+			if (!$ac->isStatic() && $ac->isActive()) {
 				$counter = $ac->getCounter();
-				call_user_func_array( [$counter, 'updateHook'], func_get_args() );
+				call_user_func_array([$counter, 'updateHook'], func_get_args());
 			}
 		}
 	}
 
-	static public function &AchievementFromID ( $id ) {
+	static public function &AchievementFromID($id)
+	{
 		global $wgAchievementsConfigs;
-		if ( $id === '' || !isset( $wgAchievementsConfigs[$id] ) ) {
+		if ($id === '' || !isset($wgAchievementsConfigs[$id])) {
 			$err = false;
 			return $err;
 		}
-		if ( !isset( self::$list[$id] ) ) self::$list[$id] = new Achievement( $id, $wgAchievementsConfigs[$id] );
+		if (!isset(self::$list[$id]))
+			self::$list[$id] = new Achievement($id, $wgAchievementsConfigs[$id]);
 		return self::$list[$id];
 	}
 
-	static public function &AchievementFromStagedID ( $id, &$stage = 0, &$count = 0 ) {
-		if ( $id === '' ) {
+	static public function &AchievementFromStagedID($id, &$stage = 0, &$count = 0)
+	{
+		if ($id === '') {
 			$err = false;
 			return $err;
 		}
 
-		list ( $name, $stage, $count ) = Achievement::sepStageName( $id );
+		list($name, $stage, $count) = Achievement::sepStageName($id);
 
-		return self::AchievementFromID( $name );
+		return self::AchievementFromID($name);
 	}
 
-	static public function AchievementsFromAll () {
+	static public function AchievementsFromAll()
+	{
 		global $wgAchievementsConfigs;
 		$res = [];
-		foreach ( $wgAchievementsConfigs as $id => &$config ) {
-			$ac = self::AchievementFromID( $id );
-			if ( $ac ) $res[] = $ac;
+		foreach ($wgAchievementsConfigs as $id => &$config) {
+			$ac = self::AchievementFromID($id);
+			if ($ac)
+				$res[] = $ac;
 		}
 		return $res;
 	}
 
-	static public function AchievementsFromCounter ( $countername = false ) {
+	static public function AchievementsFromCounter($countername = false)
+	{
 		global $wgAchievementsConfigs;
 		$res = [];
-		foreach ( $wgAchievementsConfigs as $id => &$config ) {
-			$value = isset( $config['type'] ) ? $config['type'] : false;
-			if ( $value === $countername ) {
-				$ac = self::AchievementFromID( $id );
-				if ( $ac ) $res[] = $ac;
+		foreach ($wgAchievementsConfigs as $id => &$config) {
+			$value = isset($config['type']) ? $config['type'] : false;
+			if ($value === $countername) {
+				$ac = self::AchievementFromID($id);
+				if ($ac)
+					$res[] = $ac;
 			}
 		}
 		return $res;
 	}
 
-	static public function AchievementsFromReset ( $reset = false ) {
+	static public function AchievementsFromReset($reset = false)
+	{
 		global $wgAchievementsConfigs;
 		$res = [];
-		foreach ( $wgAchievementsConfigs as $id => &$config ) {
-			$value = isset( $config['reset'] ) ? $config['reset'] : false;
-			if ( $value === $reset ) {
-				$ac = self::AchievementFromID( $id );
-				if ( $ac ) $res[] = $ac;
+		foreach ($wgAchievementsConfigs as $id => &$config) {
+			$value = isset($config['reset']) ? $config['reset'] : false;
+			if ($value === $reset) {
+				$ac = self::AchievementFromID($id);
+				if ($ac)
+					$res[] = $ac;
 			}
 		}
 		return $res;
 	}
 
-	static public function sortAchievements ( &$res ) {
-		$order = array_keys( self::configs() );
-		usort( $res, function ( &$a, &$b ) use ( $order ) {
+	static public function sortAchievements(&$res)
+	{
+		$order = array_keys(self::configs());
+		usort($res, function (&$a, &$b) use ($order) {
 			$an = $a->getID();
 			$bn = $b->getID();
-			if ($an == $bn) return 0;
-			return array_search( $an, $order ) < array_search( $bn, $order ) ? -1 : 1;
-		} );
+			if ($an == $bn)
+				return 0;
+			return array_search($an, $order) < array_search($bn, $order) ? -1 : 1;
+		});
 	}
 
-	static public function updateUserAchievs ( $user ) {
-		if ( $user instanceof \User && !$user->isAnon() && !$user->isBlocked() ) {
-			$list = self::AchievementsFromReset( false );
+	static public function updateUserAchievs($user)
+	{
+		if ($user instanceof User && !$user->isAnon() && !$user->getBlock()) {
+			$list = self::AchievementsFromReset(false);
 
-			foreach ( $list as &$achiev ) {
-				if ( !$achiev->isStatic() && $achiev->isActive() && !$achiev->isMultiple() ) {
-					$achiev->updateAchiev( $user, false );
+			foreach ($list as &$achiev) {
+				if (!$achiev->isStatic() && $achiev->isActive() && !$achiev->isMultiple()) {
+					$achiev->updateAchiev($user, false);
 				}
 			}
-			self::clearUserCache ( $user, 'refresh' );
+			self::clearUserCache($user, 'refresh');
 		}
 	}
 
-	static public function getUserTitle ( $user, $plain = true ) {
-		list($achiev, $stage) = self::getUserTitleAchievement( $user );
-		if ( $achiev instanceof Achievement ) {
-			return $achiev->getAfterLinkMsg( $stage, $plain );
+	static public function quickGetUserIdAndTitle(string $dbKey)
+	{
+		$cache = MediaWikiServices::getInstance()->getMainWANObjectCache();
+		$language = wfGetLangObj();
+		$key = $cache->makeKey('achiev', 'user', 'title', $language->getCode(), $dbKey);
+
+		return $cache->getWithSetCallback(
+			$key,
+				$cache::TTL_HOUR * 24 * 30, // Cache for 30 days
+			function ($oldValue, &$ttl, &$setOpts) use ($dbKey) { // Function to generate the value on cache miss
+				$user = MediaWikiServices::getInstance()->getUserFactory()->newFromName($dbKey, UserFactory::RIGOR_NONE);
+
+				if (!($user instanceof User) || $user->isAnon()) {
+					return [0, ''];
+				}
+
+				return [$user->getId(), AchievementHandler::getUserTitle($user, false)];
+			}
+		);
+	}
+
+	static public function getUserTitle($user, $plain = true)
+	{
+		list($achiev, $stage) = self::getUserTitleAchievement($user);
+		if ($achiev instanceof Achievement) {
+			return $achiev->getAfterLinkMsg($stage, $plain);
 		}
 		return false;
 	}
 
-	static public function getUserTitleAchievement ( $user ) {
-		if ( $user instanceof \User && !$user->isAnon() && !$user->isBlocked() ) {
-			$title = $user->getOption( 'achievtitle', '' );
-			if ( self::quickCheckUserAchiev( $user, $title ) ) {
+	static public function getUserTitleAchievement($user)
+	{
+		if ($user instanceof User && !$user->isAnon() && !$user->getBlock()) {
+			$title = MediaWikiServices::getInstance()->getUserOptionsLookup()->getOption($user, 'achievtitle', '');
+			if (self::quickCheckUserAchiev($user, $title)) {
 				$stage = 0;
-				$achiev = self::AchievementFromStagedID( $title, $stage );
+				$achiev = self::AchievementFromStagedID($title, $stage);
 				if ($achiev instanceof Achievement) {
 					return [$achiev, $stage];
 				}
@@ -123,28 +164,30 @@ class AchievementHandler {
 		return [null, 0];
 	}
 
-	static public function getAchievers ( $stagename, $stage = null ) {
-		if ( $stagename === '' ) return [];
-		if ( !is_null( $stage ) && $stage > 0 ) {
+	static public function getAchievers($stagename, $stage = null)
+	{
+		if ($stagename === '')
+			return [];
+		if (!is_null($stage) && $stage > 0) {
 			$stagename .= ':' . $stage;
 		}
-		
+
 		$stage = 0;
-		$achiev = self::AchievementFromStagedID( $stagename, $stage );
-		if ( $achiev === false ) {
+		$achiev = self::AchievementFromStagedID($stagename, $stage);
+		if ($achiev === false) {
 			return [];
 		}
-		$dbr = wfGetDB( DB_SLAVE );
+		$dbr = wfGetDB(DB_REPLICA);
 		$res = $dbr->select(
 			'achievements',
 			'ac_user',
-			[ 'ac_id' => $achiev->getStageName( $stage ), 'ac_date IS NOT NULL' ]
+			['ac_id' => $achiev->getStageName($stage), 'ac_date IS NOT NULL']
 		);
 
-		if ( $res ) {
+		if ($res) {
 			$data = [];
-			while ( $row = $res->fetchRow() ) {
-				$data[] = (int)$row['ac_user'];
+			while ($row = $res->fetchRow()) {
+				$data[] = (int) $row['ac_user'];
 			}
 			return $data;
 		}
@@ -152,67 +195,73 @@ class AchievementHandler {
 
 	}
 
-	static public function countAchievers ( $stagename, $stage = null, $refresh = false ) {
-		if ( $stagename === '' ) return 0;
-		if ( !is_null( $stage ) && $stage > 0 ) {
+	static public function countAchievers($stagename, $stage = null, $refresh = false)
+	{
+		if ($stagename === '')
+			return 0;
+		if (!is_null($stage) && $stage > 0) {
 			$stagename .= ':' . $stage;
 		}
-		
+
 		$cache = MediaWikiServices::getInstance()->getMainWANObjectCache();
-		$key = $cache->makeKey( 'achiev', 'count', $stagename );
-		
-		if ( $refresh ) $cache->delete( $key, 1 );
+		$key = $cache->makeKey('achiev', 'count', $stagename);
+
+		if ($refresh)
+			$cache->delete($key, 1);
 
 		return $cache->getWithSetCallback(
 			$key,
-			$cache::TTL_HOUR * 24, // Cache for 24 hours
-			function ( $oldValue, &$ttl, &$setOpts ) use ( $stagename ) { // Function to generate the value on cache miss
+				$cache::TTL_HOUR * 24, // Cache for 24 hours
+			function ($oldValue, &$ttl, &$setOpts) use ($stagename) { // Function to generate the value on cache miss
 				$stage = 0;
-				$achiev = self::AchievementFromStagedID( $stagename, $stage );
-				if ( $achiev === false ) {
+				$achiev = self::AchievementFromStagedID($stagename, $stage);
+				if ($achiev === false) {
 					return 0;
 				}
-				$dbr = wfGetDB( DB_SLAVE );
+				$dbr = wfGetDB(DB_REPLICA);
 
-				$setOpts = \Database::getCacheSetOptions( $dbr );
+				$setOpts = \Database::getCacheSetOptions($dbr);
 
-				return (int)$dbr->selectField(
+				return (int) $dbr->selectField(
 					'achievements',
 					'COUNT(1)',
-					[ 'ac_id' => $achiev->getStageName( $stage ), 'ac_date IS NOT NULL' ]
+					['ac_id' => $achiev->getStageName($stage), 'ac_date IS NOT NULL']
 				);
 			}
 		);
 	}
 
-	static public function getUserAchievIDs ( $user ) {
-		if ( !($user instanceof \User) ) {
+	static public function getUserAchievIDs($user)
+	{
+		if (!($user instanceof User)) {
 			return [];
 		}
 		$cache = MediaWikiServices::getInstance()->getMainWANObjectCache();
-		
-		return $cache->getWithSetCallback(
-			$cache->makeKey( 'achiev', 'user', 'achiev', $user->getId() ),
-			$cache::TTL_HOUR * 120, // Cache for 120 hours
-			function ( $oldValue, &$ttl, &$setOpts ) use ( $user ) { // Function to generate the value on cache miss
-				if ( $user->isAnon() || $user->isBlocked() ) return [];
-				$dbw = wfGetDB( DB_SLAVE );
 
-				$setOpts = \Database::getCacheSetOptions( $dbw );
+		return $cache->getWithSetCallback(
+			$cache->makeKey('achiev', 'user', 'achiev', $user->getId()),
+				$cache::TTL_HOUR * 24 * 30, // Cache for 30 days
+			function ($oldValue, &$ttl, &$setOpts) use ($user) { // Function to generate the value on cache miss
+				if ($user->isAnon() || $user->getBlock())
+					return [];
+				$dbw = wfGetDB(DB_REPLICA);
+
+				$setOpts = \Database::getCacheSetOptions($dbw);
 
 				$res = $dbw->select(
 					'achievements',
-					[ 'ac_id', 'ac_date' ],
-					[ 'ac_user' => $user->getId(), 'ac_date IS NOT NULL' ],
+					['ac_id', 'ac_date'],
+					['ac_user' => $user->getId(), 'ac_date IS NOT NULL'],
 					__METHOD__
 				);
-				if ( $res ) {
+				if ($res) {
 					$data = [];
-					while ( $row = $res->fetchRow() ) {
-						$ts = wfTimestamp( TS_UNIX, $row['ac_date'] );
-						if ( $ts > 0 ) $data[$row['ac_id']] = $ts;
+					while ($row = $res->fetchRow()) {
+						$ts = wfTimestamp(TS_UNIX, $row['ac_date']);
+						if ($ts > 0)
+							$data[$row['ac_id']] = $ts;
 					}
-					ksort( $data, SORT_NATURAL );
+					ksort($data, SORT_NATURAL);
 					return $data;
 				}
 				return [];
@@ -220,35 +269,38 @@ class AchievementHandler {
 		);
 	}
 
-	static public function getUserAchievs ( $user ) {
-		if ( !($user instanceof \User) ) {
+	static public function getUserAchievs($user)
+	{
+		if (!($user instanceof User)) {
 			return [];
 		}
 
-		$data = self::getUserAchievIDs( $user );
+		$data = self::getUserAchievIDs($user);
 
 		$list = [];
-		foreach ( $data as $id => $ts ) {
-			$achiev = self::AchievementFromStagedID( $id, $stage, $count );
-			if ( $achiev === false ) continue;
+		foreach ($data as $id => $ts) {
+			$achiev = self::AchievementFromStagedID($id, $stage, $count);
+			if ($achiev === false)
+				continue;
 			$name = $achiev->getID();
-			if ( $stage == 0 ) {
-				if ( isset( $list[$name][0] ) ) {
-					if ( is_array( $list[$name][0] ) ) {
+			if ($stage == 0) {
+				if (isset($list[$name][0])) {
+					if (is_array($list[$name][0])) {
 						$list[$name][0][] = $ts;
 					} else {
-						$list[$name][0] = [ $list[$name][0], $ts ];
+						$list[$name][0] = [$list[$name][0], $ts];
 					}
 				} else {
-					$list[$name] = [ $ts ];
+					$list[$name] = [$ts];
 				}
 			} else {
-				if ( !isset( $list[$name] ) ) $list[$name] = [];
-				if ( isset( $list[$name][$stage] ) ) {
-					if ( is_array( $list[$name][$stage] ) ) {
+				if (!isset($list[$name]))
+					$list[$name] = [];
+				if (isset($list[$name][$stage])) {
+					if (is_array($list[$name][$stage])) {
 						$list[$name][$stage][] = $ts;
 					} else {
-						$list[$name][$stage] = [ $list[$name][$stage], $ts ];
+						$list[$name][$stage] = [$list[$name][$stage], $ts];
 					}
 				} else {
 					$list[$name][$stage] = $ts;
@@ -258,87 +310,93 @@ class AchievementHandler {
 		return $list;
 	}
 
-	static public function getUserCounts ( $user ) {
-		if ( !($user instanceof \User) ) {
+	static public function getUserCounts($user)
+	{
+		if (!($user instanceof User)) {
 			return [];
 		}
-		$dbw = wfGetDB( DB_SLAVE );
+		$dbw = wfGetDB(DB_REPLICA);
 
 		$res = $dbw->select(
 			'achievements',
-			[ 'ac_id', 'ac_count' ],
-			[ 'ac_user' => $user->getId() ],
+			['ac_id', 'ac_count'],
+			['ac_user' => $user->getId()],
 			__METHOD__
 		);
-		if ( $res ) {
+		if ($res) {
 			$data = [];
-			while ( $row = $res->fetchRow() ) {
-				$data[$row['ac_id']] = intval( $row['ac_count'] );
+			while ($row = $res->fetchRow()) {
+				$data[$row['ac_id']] = intval($row['ac_count']);
 			}
-			ksort( $data, SORT_NATURAL );
+			ksort($data, SORT_NATURAL);
 			return $data;
 		}
 		return [];
 	}
 
-	static public function getUserScore ( $user ) {
-		if ( !($user instanceof \User) ) {
+	static public function getUserScore($user)
+	{
+		if (!($user instanceof User)) {
 			return 0;
 		}
 
-		$aclist = AchievementHandler::getUserAchievs( $user );
+		$aclist = AchievementHandler::getUserAchievs($user);
 		$score = 0;
-		foreach ( $aclist as $aid => $tss ) {
-			$ac = AchievementHandler::AchievementFromID( $aid );
-			foreach ( $tss as $stage => $ts ) {
-				if ( $ac->isMultiple() && is_array( $ts ) ) {
-					$score += round( $ac->getStageScore( $stage ) * 4 * ( 1 - pow( 3/4, count( $ts ) ) ) );
+		foreach ($aclist as $aid => $tss) {
+			$ac = AchievementHandler::AchievementFromID($aid);
+			foreach ($tss as $stage => $ts) {
+				if ($ac->isMultiple() && is_array($ts)) {
+					$score += round($ac->getStageScore($stage) * 4 * (1 - pow(3 / 4, count($ts))));
 				} else {
-					$score += $ac->getStageScore( $stage );
+					$score += $ac->getStageScore($stage);
 				}
-				
+
 			}
 		}
 		return $score;
 	}
 
-	static public function Score2Level ( $score = 0 ) {
+	static public function Score2Level($score = 0)
+	{
 		$level = 0;
-		while ( $level < 99 && $score >= Self::Level2Score( $level + 1 ) ) {
+		while ($level < 99 && $score >= self::Level2Score($level + 1)) {
 			++$level;
 		}
 		return $level;
 	}
-	
-	static public function Level2Score ( $level = 0 ) {
-		$level = max( 0, min( 99, $level ) );
-		return $level * ( $level + 2 ) * 10;
+
+	static public function Level2Score($level = 0)
+	{
+		$level = max(0, min(99, $level));
+		return $level * ($level + 2) * 10;
 	}
 
-	static public function quickCheckUserAchiev ( $user, $id ) {
-		if ( $id === '' || !($user instanceof \User) || $user->isAnon() || $user->isBlocked() ) {
+	static public function quickCheckUserAchiev($user, $id)
+	{
+		if ($id === '' || !($user instanceof User) || $user->isAnon() || $user->getBlock()) {
 			return false;
 		}
 
-		$list = self::getUserAchievIDs( $user );
+		$list = self::getUserAchievIDs($user);
 
-		return isset( $list[$id] ) ? $list[$id] : false;
+		return isset($list[$id]) ? $list[$id] : false;
 	}
 
 	// $mode Use 'refresh' to clear now; otherwise before DB commit
-	static public function clearUserCache ( $user, $mode = 'changed' ) {
-		if ( !($user instanceof \User) ) {
+	static public function clearUserCache($user, $mode = 'changed')
+	{
+		if (!($user instanceof User)) {
 			return;
 		}
 
 		$cache = MediaWikiServices::getInstance()->getMainWANObjectCache();
-		$key = $cache->makeKey( 'achiev', 'user', 'achiev', $user->getId() );
-		if ( $mode === 'refresh' ) {
-			$cache->delete( $key, 1 );
+		$key = $cache->makeKey('achiev', 'user', 'achiev', $user->getId());
+		if ($mode === 'refresh') {
+			$cache->delete($key, 1);
 		} else {
-			wfGetDB( DB_MASTER )->onTransactionPreCommitOrIdle(
-				function() use ( $cache, $key ) {
-					$cache->delete( $key );
+			wfGetDB(DB_MASTER)->onTransactionPreCommitOrIdle(
+				function () use ($cache, $key) {
+					$cache->delete($key);
 				},
 				__METHOD__
 			);

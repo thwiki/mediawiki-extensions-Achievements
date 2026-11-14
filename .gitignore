@@ -1,3 +1,2 @@
-Achievements.settings.php
-achievi18n/*.json
-*.log
+scripts/log/*.log
+class/counters/log/*.log

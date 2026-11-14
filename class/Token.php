@@ -1,9 +1,13 @@
 <?php
 
 namespace Achiev;
-use \MediaWiki\MediaWikiServices;
 
-class Token {
+use \MediaWiki\MediaWikiServices;
+use \User;
+use BagOStuff;
+
+class Token
+{
 
 	private $secret = '';
 	private $achiev = '';
@@ -14,55 +18,66 @@ class Token {
 	 * @param Achievement $achiev Achievement
 	 * @param bool $new Whether the secret was newly-created
 	 */
-	public function __construct( $secret, $new = false ) {
-		$this->secret = $new ? $secret : self::trimToken( $secret );
+	public function __construct($secret, $new = false)
+	{
+		$this->secret = $new ? $secret : self::trimToken($secret);
 		$this->new = $new;
 	}
 
-	static public function sampleToken ( $letter ) {
+	static public function sampleToken($letter)
+	{
 		global $wgAchievementsTokenLength;
-		return (new Self( str_pad( '', $wgAchievementsTokenLength, $letter ), true ) )->toString();
+		return(new self(str_pad('', $wgAchievementsTokenLength, $letter), true))->toString();
 	}
 
-	static public function trimToken ( $string ) {
-		return strtolower( preg_replace( '/[^0-9a-fA-F]/', '', (string)$string ) );
+	static public function trimToken($string)
+	{
+		return strtolower(preg_replace('/[^0-9a-fA-F]/', '', (string) $string));
 	}
 
-	public function getTokenMemcKey () {
-		return self::getMemcKey( hash_hmac( 'md5', $this->secret, '', false ) );
+	public function getTokenMemcKey(BagOStuff $cache)
+	{
+		return self::getMemcKey($cache, hash_hmac('md5', $this->secret, '', false));
 	}
 
-	static public function getMemcKey ( $t ) {
-		return wfMemcKey( 'achiev', 't', $t );
+	static public function getMemcKey(BagOStuff $cache, $t)
+	{
+		return $cache->makeKey('achiev', 't', $t);
 	}
 
-	public static function getToken( $user, $achiev, $stage = 0, $opt ) {
+	public static function getToken($user, $achiev, $stage = 0, $opt, $secret = null)
+	{
 		global $wgAchievementsTokenLength;
-		if ( $wgAchievementsTokenLength <= 0 ) return false;
-		if ( !($user instanceof \User) || $user->isAnon() || $user->isBlocked() || !$user->isAllowed( 'manageachievements' ) ) return false;
-		if ( !$achiev->isAwardable() ) return false;
-		
+		if ($wgAchievementsTokenLength <= 0)
+			return false;
+		if (!($user instanceof User) || $user->isAnon() || $user->getBlock() || !$user->isAllowed('manageachievements'))
+			return false;
+		if (!$achiev->isAwardable())
+			return false;
+
 		$cache = MediaWikiServices::getInstance()->getMainObjectStash();
-		$secret = \MWCryptRand::generateHex( $wgAchievementsTokenLength );
-		$token = new Self( $secret, true );
-		
-		$key = $token->getTokenMemcKey();
+		if (empty($secret)) {
+			$secret = \MWCryptRand::generateHex($wgAchievementsTokenLength);
+		}
+		$token = new self($secret, true);
+
+		$key = $token->getTokenMemcKey($cache);
 
 		$data = [
 			'user' => $user->getId(),
-			'achiev' => $achiev->getStageName( $stage ),
+			'achiev' => $achiev->getStageName($stage),
 		];
-		if ( isset( $opt['count'] ) && !is_null( $opt['count'] ) ) {
+		if (isset($opt['count']) && !is_null($opt['count'])) {
 			$data['count'] = $opt['count'];
 		}
-		if ( isset( $opt['limit'] ) && !is_null( $opt['limit'] ) ) {
+		if (isset($opt['limit']) && !is_null($opt['limit'])) {
 			$data['limit'] = $opt['limit'];
 		}
-		if ( isset( $opt['target'] ) && $opt['target'] instanceof \User && !$opt['target']->isAnon() ) {
+		if (isset($opt['target']) && $opt['target'] instanceof User && !$opt['target']->isAnon()) {
 			$data['target'] = $opt['target']->getId();
 		}
-		$data['time'] = isset( $opt['time'] ) ? $opt['time'] : 0;
-		$cache->set( $key, $data, $data['time'] );
+		$data['time'] = isset($opt['time']) ? $opt['time'] : 0;
+		$cache->set($key, $data, $data['time']);
 
 		return $token;
 	}
@@ -71,91 +86,100 @@ class Token {
 	 * Get the string representation of the token
 	 * @return string
 	 */
-	public function toString () {
-		return trim( chunk_split( strtoupper( $this->secret ), 5, '-' ), '-' );
+	public function toString()
+	{
+		return trim(chunk_split(strtoupper($this->secret), 5, '-'), '-');
 	}
 
-	public function toLink () {
-		$title = \Title::newFromText( 'RA', NS_SPECIAL );
+	public function toLink()
+	{
+		$title = \Title::newFromText('RA', NS_SPECIAL);
 		return $title->getPrefixedText() . '/' . $this->toString();
 	}
 
-	public function toUrl () {
-		$title = \Title::newFromText( 'RA', NS_SPECIAL );
+	public function toUrl()
+	{
+		$title = \Title::newFromText('RA', NS_SPECIAL);
 		return $title->getFullURL() . '/' . $this->toString();
 	}
 
-	public function __toString () {
+	public function __toString()
+	{
 		return $this->toString();
 	}
 
-	public static function useToken( $user, $string ) {
-		if ( !($user instanceof \User) ) throw new AchievError( 'blocked-user' );
-		if ( $string instanceof Token ) {
+	public static function useToken($user, $string)
+	{
+		if (!($user instanceof User))
+			throw new AchievError('blocked-user');
+		if ($string instanceof Token) {
 			$userToken = $string;
 		} else {
-			$userToken = new Self( $string );
+			$userToken = new self($string);
 		}
-		if ( $userToken->toString() === '' ) throw new AchievError( 'empty-token' );
+		if ($userToken->toString() === '')
+			throw new AchievError('empty-token');
 
 		$cache = MediaWikiServices::getInstance()->getMainObjectStash();
-		$key = $userToken->getTokenMemcKey();
-		
-		$data = $cache->get( $key );
+		$key = $userToken->getTokenMemcKey($cache);
 
-		if ( $data === false ) {
-			$cache->delete( $key );
-			throw new AchievError( 'invalid-token' );
+		$data = $cache->get($key);
+
+		if ($data === false) {
+			$cache->delete($key);
+			throw new AchievError('invalid-token');
 		}
-		if ( empty( $data['user'] ) || !(($source = \User::newFromId( $data['user'] )) instanceof \User) ) {
-			$cache->delete( $key );
-			throw new AchievError( 'invalid-source' );
+		if (empty($data['user']) || !(($source = MediaWikiServices::getInstance()->getUserFactory()->newFromId($data['user'])) instanceof User)) {
+			$cache->delete($key);
+			throw new AchievError('invalid-source');
 		}
-		if ( $source->isAnon() || $source->isBlocked() || !$source->isAllowed( 'manageachievements' ) ) {
-			$cache->delete( $key );
-			throw new AchievError( 'blocked-source' );
+		if ($source->isAnon() || $source->getBlock() || !$source->isAllowed('manageachievements')) {
+			$cache->delete($key);
+			throw new AchievError('blocked-source');
 		}
-		if ( !empty( $data['target'] ) && $user->getId() !== $data['target'] ) {
-			throw new AchievError( 'wrong-user' );
+		if (!empty($data['target']) && $user->getId() !== $data['target']) {
+			throw new AchievError('wrong-user');
 		}
-		
+
 		$stage = 0;
-		$achiev = AchievementHandler::AchievementFromStagedID( isset( $data['achiev'] ) ? $data['achiev'] : '', $stage );
-		if ( !$achiev ) {
-			$cache->delete( $key );
-			throw new AchievError( 'achiev-notexists' );
+		$achiev = AchievementHandler::AchievementFromStagedID(isset($data['achiev']) ? $data['achiev'] : '', $stage);
+		if (!$achiev) {
+			$cache->delete($key);
+			throw new AchievError('achiev-notexists');
 		}
 		$count = null;
-		if ( isset( $data['count'] ) ) {
+		if (isset($data['count'])) {
 			$count = $data['count'];
-			$achiev->addStaticCountTo( $user, $count );
+			$achiev->addStaticCountTo($user, $count);
 		} else {
-			$achiev->awardStaticTo( $user, $stage );
+			$achiev->awardStaticTo($user, $stage);
 		}
-		if ( isset( $data['limit'] ) ) {
+		if (isset($data['limit'])) {
 			--$data['limit'];
-			if ( $data['limit'] <= 0 ) {
-				$cache->delete( $key );
+			if ($data['limit'] <= 0) {
+				$cache->delete($key);
 			} else {
-				$cache->set( $key, $data, isset( $data['time'] ) ? $data['time'] : 0 );
+				$cache->set($key, $data, isset($data['time']) ? $data['time'] : 0);
 			}
 		} else {
-			$cache->delete( $key );
+			$cache->delete($key);
 		}
-		
+
 		return [$achiev, $stage, $count, $key];
 	}
 
-	public static function deleteByHash( String $hash ) {
+	public static function deleteByHash(string $hash)
+	{
 		$cache = MediaWikiServices::getInstance()->getMainObjectStash();
-		return $cache->delete( Token::getMemcKey( $hash ) );
+		return $cache->delete(Token::getMemcKey($cache, $hash));
 	}
 
 	/**
 	 * Indicate whether this token was just created
 	 * @return bool
 	 */
-	public function wasNew() {
+	public function wasNew()
+	{
 		return $this->new;
 	}
 
