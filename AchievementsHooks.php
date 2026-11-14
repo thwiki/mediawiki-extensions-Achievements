@@ -1,6 +1,5 @@
 <?php
 use MediaWiki\Html\Html;
-use HtmlArmor;
 use MediaWiki\Parser\Parser;
 use MediaWiki\User\User;
 
