@@ -2,3 +2,4 @@ scripts/log/*.log
 class/counters/log/*.log
 Achievements.settings.php
 achievi18n/*.json
+class/specialpages/log/*.log
