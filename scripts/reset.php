@@ -1,4 +1,5 @@
 <?php
+use MediaWiki\User\User;
 
 $IP = getenv('MW_INSTALL_PATH');
 if ($IP === false)
@@ -54,8 +55,8 @@ class ResetAchievementCounter extends Maintenance
 				$counterlist[] = $achiev->getCounter();
 			}
 
-			if (count($counterlist) > 0 || Hooks::isRegistered('Achievement::' . $interval)) {
-				$dbw = $this->getDB(DB_MASTER);
+			if (count($counterlist) > 0 || MediaWikiServices::getInstance()->getHookContainer()->isRegistered('Achievement::' . $interval)) {
+				$dbw = $this->getDB(DB_PRIMARY);
 				$i = 0;
 				$maxUserId = 0;
 				$userQuery = User::getQueryInfo();
@@ -75,7 +76,7 @@ class ResetAchievementCounter extends Maintenance
 					foreach ($res as $row) {
 						$user = User::newFromRow($row);
 						if ($yeshook)
-							Hooks::run('Achievement::' . $interval, [$user, $this]);
+							MediaWikiServices::getInstance()->getHookContainer()->run('Achievement::' . $interval, [$user, $this]);
 						foreach ($counterlist as $n => $c) {
 							if (!$removablelist[$n])
 								$c->updateAchiev($user, false);

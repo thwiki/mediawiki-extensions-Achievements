@@ -1,4 +1,5 @@
 <?php
+use MediaWiki\User\User;
 
 $IP = getenv('MW_INSTALL_PATH');
 if ($IP === false)
@@ -69,7 +70,7 @@ class InitAchievementCounter extends Maintenance
 		if (count($counterlist) == 0)
 			return;
 
-		$dbw = $this->getDB(DB_MASTER);
+		$dbw = $this->getDB(DB_PRIMARY);
 		$i = 0;
 		$maxUserId = 0;
 		$userQuery = User::getQueryInfo();

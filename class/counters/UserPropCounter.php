@@ -2,8 +2,8 @@
 
 namespace Achiev;
 
-use \MediaWiki\MediaWikiServices;
-use \User;
+use MediaWiki\MediaWikiServices;
+use User;
 
 class UserPropCounter extends Counter
 {

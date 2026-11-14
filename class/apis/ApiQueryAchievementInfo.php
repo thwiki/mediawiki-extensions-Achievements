@@ -2,16 +2,16 @@
 
 namespace Achiev;
 
-use \ApiBase;
-use \ApiResult;
-use \PermissionsError;
-use \User;
-use \Title;
-use \MediaWiki\Block\AbstractBlock;
-use \MediaWiki\MediaWikiServices;
-use \ApiQuery;
-use \ApiQueryBase;
-use \wAvatar;
+use ApiBase;
+use ApiResult;
+use PermissionsError;
+use User;
+use Title;
+use MediaWiki\Block\AbstractBlock;
+use MediaWiki\MediaWikiServices;
+use MediaWiki\Api\ApiQuery;
+use MediaWiki\Api\ApiQueryBase;
+use wAvatar;
 
 class ApiQueryAchievementInfo extends ApiQueryBase
 {
@@ -50,7 +50,7 @@ class ApiQueryAchievementInfo extends ApiQueryBase
 		if (isset($this->prop['avatar']) && class_exists('wAvatar')) {
 			$id = $user->getId();
 			$avatar = new wAvatar($id, 'l');
-			$vals['avatar'] = $avatar->getAvatarUrlPath();
+			$vals['avatar'] = $avatar->getAvatarURL( [ 'raw' => true ] );
 		}
 
 		if (isset($this->prop['titlename']) || isset($this->prop['titledesc']) || isset($this->prop['titleimage'])) {

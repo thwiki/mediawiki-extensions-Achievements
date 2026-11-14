@@ -2,7 +2,7 @@
 
 namespace Achiev;
 
-use \User;
+use User;
 use MediaWiki\MediaWikiServices;
 
 class UserGroupCounter extends Counter
@@ -17,7 +17,7 @@ class UserGroupCounter extends Counter
 				->getUserGroups($user)) ? 1 : 0;
 		} else {
 			if ($this->config['init'] == 'current') {
-				$dbw = wfGetDB(DB_MASTER);
+				$dbw = MediaWikiServices::getInstance()->getConnectionProvider()->getPrimaryDatabase();
 
 				return (int) ($dbw->selectField(
 					'user_groups',

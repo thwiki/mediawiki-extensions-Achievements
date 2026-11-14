@@ -2,9 +2,9 @@
 
 namespace Achiev;
 
-use \ApiBase;
-use \ApiQueryBase;
-use \ApiQuery;
+use ApiBase;
+use MediaWiki\Api\ApiQueryBase;
+use MediaWiki\Api\ApiQuery;
 
 class ApiQueryAllAchievements extends ApiQueryBase
 {

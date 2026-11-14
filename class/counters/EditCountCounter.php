@@ -2,10 +2,10 @@
 
 namespace Achiev;
 
-use \User;
+use User;
 use MediaWiki\MediaWikiServices;
-use WikiPage;
-use Title;
+use MediaWiki\Page\WikiPage;
+use MediaWiki\Title\Title;
 use MediaWiki\Revision\RevisionRecord;
 use MediaWiki\Storage\EditResult;
 use MediaWiki\User\UserIdentity;
@@ -28,7 +28,7 @@ class EditCountCounter extends Counter
 			return $user->getEditCount() + $value;
 		}
 
-		$dbr = wfGetDB(DB_REPLICA);
+		$dbr = MediaWikiServices::getInstance()->getConnectionProvider()->getReplicaDatabase();
 
 		if (isset($cond['page'])) {
 			$res = $dbr->select(
@@ -67,10 +67,7 @@ class EditCountCounter extends Counter
 							'INNER JOIN',
 							['rev_page=page_id', 'rev_actor' => $user->getActorId()]
 						],
-						'categorylinks' => [
-							'INNER JOIN',
-							['cl_from=page_id', 'cl_to' => $cond['cat']]
-						]
+						'categorylinks' => [ 'INNER JOIN', [ 'cl_from=page_id', 'cl_target_id=lt_id' ] ], 'linktarget' => [ 'INNER JOIN', [ 'lt_id=cl_target_id', 'lt_namespace' => NS_CATEGORY, 'lt_title' => $cond['cat'] ] ]
 					]
 				);
 			} elseif (isset($cond['ns'])) {
@@ -142,7 +139,7 @@ class EditCountCounter extends Counter
 			$inpage = true;
 			$inns = true;
 			$incat = true;
-			$dbr = wfGetDB(DB_REPLICA);
+			$dbr = MediaWikiServices::getInstance()->getConnectionProvider()->getReplicaDatabase();
 			if (isset($cond['page'])) {
 				if ($title->inNamespace($cond['ns']) && $title->getDBkey() === $cond['page']) {
 					$inpage = true;
@@ -191,9 +188,9 @@ class EditCountCounter extends Counter
 
 	private function getContributors(WikiPage $wikiPage, RevisionRecord $revisionRecord)
 	{
-		$dbr = wfGetDB(DB_PRIMARY);
+		$dbr = MediaWikiServices::getInstance()->getConnectionProvider()->getPrimaryDatabase();
 
-		$actorMigration = \ActorMigration::newMigration();
+		$actorMigration = \MediaWiki\User\ActorMigration::newMigration();
 		$actorQuery = $actorMigration->getJoin('rev_user');
 
 		$tables = array_merge(['revision'], $actorQuery['tables'], ['user']);
@@ -226,7 +223,7 @@ class EditCountCounter extends Counter
 		];
 
 		$res = $dbr->select($tables, $fields, $conds, __METHOD__, $options, $jconds);
-		return new \UserArrayFromResult($res);
+		return new \MediaWiki\User\UserArrayFromResult($res);
 	}
 
 	protected function buildCond()

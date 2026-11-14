@@ -1,9 +1,10 @@
 <?php
 
 namespace Achiev;
+use MediaWiki\Page\WikiPage;
 
 use MediaWiki\MediaWikiServices;
-use \User;
+use User;
 
 class RandomCounter extends Counter
 {
@@ -72,7 +73,7 @@ class RandomCounter extends Counter
 		$cache->set($key, $data, 0);
 	}
 
-	public function updateHook($opt, \WikiPage $wikipage, User $user)
+	public function updateHook($opt, WikiPage $wikipage, User $user)
 	{ // PageViewUpdates
 		if ($this->isBlocked($user) || !$wikipage->exists() || AchievementHandler::quickCheckUserAchiev($user, $this->id))
 			return;

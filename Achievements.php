@@ -70,6 +70,15 @@ $wgAutoloadClasses['Achiev\\AchievError'] = __DIR__ . '/class/ErrorClass.php';
 // Echo模板类
 $wgAutoloadClasses['Achiev\\AchievPresentationModel'] = __DIR__ . '/class/PresentationModel.php';
 
+// jquery.tipsy 在 1.46 已从核心移除（1.39 位于 resources/src/jquery.tipsy），
+// 这里打包一份并重新注册，供 ext.achievement 依赖。
+$wgResourceModules['jquery.tipsy'] = [
+	'localBasePath' => __DIR__ . '/src/tipsy',
+	'remoteExtPath' => 'Achievements/src/tipsy',
+	'scripts' => 'jquery.tipsy.js',
+	'styles' => 'jquery.tipsy.css',
+];
+
 // 在所有页面中显示成就效果
 $wgResourceModules['ext.achievement'] = [
 	'localBasePath' => __DIR__ . '/src',

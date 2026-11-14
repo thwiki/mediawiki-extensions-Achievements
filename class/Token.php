@@ -2,8 +2,10 @@
 
 namespace Achiev;
 
-use \MediaWiki\MediaWikiServices;
-use \User;
+
+use MediaWiki\MediaWikiServices;
+use MediaWiki\Title\Title;
+use User;
 use BagOStuff;
 
 class Token
@@ -93,13 +95,13 @@ class Token
 
 	public function toLink()
 	{
-		$title = \Title::newFromText('RA', NS_SPECIAL);
+		$title = Title::newFromText('RA', NS_SPECIAL);
 		return $title->getPrefixedText() . '/' . $this->toString();
 	}
 
 	public function toUrl()
 	{
-		$title = \Title::newFromText('RA', NS_SPECIAL);
+		$title = Title::newFromText('RA', NS_SPECIAL);
 		return $title->getFullURL() . '/' . $this->toString();
 	}
 

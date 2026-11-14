@@ -2,8 +2,8 @@
 
 namespace Achiev;
 
-use \User;
-use \UserBlockedError;
+use User;
+use UserBlockedError;
 use MediaWiki\MediaWikiServices;
 
 class SpecialRedeemAchievement extends \SpecialPage

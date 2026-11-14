@@ -54,7 +54,9 @@ class CounterHandler
 			$wgAutoloadClasses[$classname] = __DIR__ . '/counters/' . $config[0] . '.php';
 
 			foreach ($config[1] as $hook) {
-				$wgHooks[$hook][] = ['Achiev\\AchievementHandler::handleHook', [$name, $hook]];
+				$wgHooks[$hook][] = static function ( ...$args ) use ( $name, $hook ) {
+					return \Achiev\AchievementHandler::handleHook( [ $name, $hook ], ...$args );
+				};
 			}
 		}
 	}

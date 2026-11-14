@@ -1,8 +1,10 @@
 <?php
 
 namespace Achiev;
+use MediaWiki\MediaWikiServices;
 
-use \User;
+use MediaWiki\Html\Html;
+use User;
 
 class Achievement
 {
@@ -280,7 +282,7 @@ class Achievement
 			} else {
 				$image = null;
 			}
-			return \Html::openElement('a', ['class' => 'achievtitle', 'title' => $this->getDescMsg($stage), 'src' => $image]) . $text;
+			return Html::openElement('a', ['class' => 'achievtitle', 'title' => $this->getDescMsg($stage), 'src' => $image]) . $text;
 		}
 	}
 
@@ -348,7 +350,7 @@ class Achievement
 	{
 		if ($this->isBlocked($user))
 			return false;
-		$dbw = wfGetDB(DB_MASTER);
+		$dbw = MediaWikiServices::getInstance()->getConnectionProvider()->getPrimaryDatabase();
 		$ts = wfTimestampOrNull(TS_UNIX, $dbw->selectField(
 			'achievements',
 			'ac_date',
@@ -364,7 +366,7 @@ class Achievement
 		if (!$this->isActive() || $this->isBlocked($user))
 			return;
 		$note = '';
-		$dbw = wfGetDB(DB_MASTER);
+		$dbw = MediaWikiServices::getInstance()->getConnectionProvider()->getPrimaryDatabase();
 
 		$main = $dbw->selectRow(
 			'achievements',
@@ -511,7 +513,7 @@ class Achievement
 			$wid = $id = $this->id;
 			$setvalue = max($setvalue, $this->config['threshold']);
 		}
-		$dbw = wfGetDB(DB_MASTER);
+		$dbw = MediaWikiServices::getInstance()->getConnectionProvider()->getPrimaryDatabase();
 
 		$exclude = $this->getConfig('exclude', false);
 		if (!empty($exclude)) {
@@ -576,7 +578,7 @@ class Achievement
 			throw new AchievError('award-failed');
 		}
 
-		\Hooks::run('AchievementAward', [$user, $this, $stage]);
+		MediaWikiServices::getInstance()->getHookContainer()->run( 'AchievementAward', [ $user, $this, $stage ] );
 		if (self::$send_echo_events) {
 			\EchoEvent::create([
 				'type' => 'achiev-award',
@@ -592,7 +594,7 @@ class Achievement
 
 	private function removeFrom(User $user, $stage = 0)
 	{
-		$dbw = wfGetDB(DB_MASTER);
+		$dbw = MediaWikiServices::getInstance()->getConnectionProvider()->getPrimaryDatabase();
 		if ($this->isStaged()) {
 			$id = $this->getStageName($stage);
 			$dbw->delete(
@@ -624,7 +626,7 @@ class Achievement
 			throw new AchievError('remove-failed');
 		}
 
-		\Hooks::run('AchievementRemove', [$user, $this, $stage]);
+		MediaWikiServices::getInstance()->getHookContainer()->run( 'AchievementRemove', [ $user, $this, $stage ] );
 		if (self::$send_echo_events) {
 			\EchoEvent::create([
 				'type' => 'achiev-remove',

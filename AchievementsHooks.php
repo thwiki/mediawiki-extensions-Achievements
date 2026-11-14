@@ -1,4 +1,8 @@
 <?php
+use MediaWiki\Html\Html;
+use HtmlArmor;
+use MediaWiki\Parser\Parser;
+use MediaWiki\User\User;
 
 use Achiev\AchievementHandler;
 use LightnCandy\SafeString;
@@ -43,28 +47,28 @@ class ExtAchievement
 		global $wgLang, $wgAchievementsScoring;
 
 		$admin = is_null($tss);
-		$block = Html::openElement('div', ['class' => 'achiev-item']);
+		$block = \MediaWiki\Html\Html::openElement('div', ['class' => 'achiev-item']);
 
 		$thresholds = $achiev->getConfig('threshold');
 		$realts = $achiev->hasRealThreshold();
 
 		$image = '';
 		if (!is_null($achiev->getConfig('image'))) {
-			$image = Html::rawElement('img', ['src' => $achiev->getConfig('image')]);
+			$image = \MediaWiki\Html\Html::rawElement('img', ['src' => $achiev->getConfig('image')]);
 		} else {
 			if ($achiev->isStaged()) {
 				global $wgAchievementsIconStaged;
-				$image = Html::rawElement('img', ['src' => $wgAchievementsIconStaged]);
+				$image = \MediaWiki\Html\Html::rawElement('img', ['src' => $wgAchievementsIconStaged]);
 			} else {
 				global $wgAchievementsIconNormal;
-				$image = Html::rawElement('img', ['src' => $wgAchievementsIconNormal]);
+				$image = \MediaWiki\Html\Html::rawElement('img', ['src' => $wgAchievementsIconNormal]);
 			}
 		}
 
-		$block .= Html::rawElement('div', ['class' => 'achiev-image'], $image);
+		$block .= \MediaWiki\Html\Html::rawElement('div', ['class' => 'achiev-image'], $image);
 
-		$block .= Html::openElement('div', ['class' => 'achiev-body']);
-		$block .= Html::rawElement('div', ['class' => 'achiev-name'], $achiev->getNameMsg());
+		$block .= \MediaWiki\Html\Html::openElement('div', ['class' => 'achiev-body']);
+		$block .= \MediaWiki\Html\Html::rawElement('div', ['class' => 'achiev-name'], $achiev->getNameMsg());
 
 		$stageBlocks = '';
 		$lastStage = 0;
@@ -126,7 +130,7 @@ class ExtAchievement
 			$achievers[] = AchievementHandler::countAchievers($achiev->getID(), null, $admin);
 		}
 
-		$block .= Html::rawElement('div', ['class' => 'achiev-desc',], $achiev->getDescMsg());
+		$block .= \MediaWiki\Html\Html::rawElement('div', ['class' => 'achiev-desc',], $achiev->getDescMsg());
 
 		$progBar = '';
 
@@ -173,14 +177,14 @@ class ExtAchievement
 			$percent = round(max(0, min($progTop / $progBot, 1)) * 100, 0);
 			$progtext = wfMessage('achiev-progtext')->rawParams($progTop, $progBot, $percent)->text();
 
-			$progBar = Html::rawElement(
+			$progBar = \MediaWiki\Html\Html::rawElement(
 				'div',
 				['class' => 'achiev-bar', 'title' => $progtext],
-				Html::rawElement('div', ['class' => 'achiev-barfill' . ($nowcomplete ? ' achiev-barfill-c' : ''), 'style' => 'width:' . $percent . '%'], '')
-			) . Html::rawElement('div', ['class' => 'achiev-bartext'], $progtext);
+				\MediaWiki\Html\Html::rawElement('div', ['class' => 'achiev-barfill' . ($nowcomplete ? ' achiev-barfill-c' : ''), 'style' => 'width:' . $percent . '%'], '')
+			) . \MediaWiki\Html\Html::rawElement('div', ['class' => 'achiev-bartext'], $progtext);
 		}
 
-		$block .= Html::rawElement('div', ['class' => 'achiev-prog'], $progBar);
+		$block .= \MediaWiki\Html\Html::rawElement('div', ['class' => 'achiev-prog'], $progBar);
 
 		$footnotes = [];
 		if ($achiev->getConfig('hidden', false)) {
@@ -241,14 +245,14 @@ class ExtAchievement
 			}
 		}
 
-		$block .= Html::rawElement('div', ['class' => 'achiev-note'], implode(wfMessage('achiev-footnote-sep')->text(), $footnotes));
+		$block .= \MediaWiki\Html\Html::rawElement('div', ['class' => 'achiev-note'], implode(wfMessage('achiev-footnote-sep')->text(), $footnotes));
 
-		$block .= Html::closeElement('div');
+		$block .= \MediaWiki\Html\Html::closeElement('div');
 
 		if ($stageBlocks !== '')
-			$block .= Html::rawElement('div', ['class' => 'achiev-stage'], $stageBlocks);
+			$block .= \MediaWiki\Html\Html::rawElement('div', ['class' => 'achiev-stage'], $stageBlocks);
 
-		$block .= Html::closeElement('div');
+		$block .= \MediaWiki\Html\Html::closeElement('div');
 
 		return $block;
 	}
@@ -275,7 +279,7 @@ class ExtAchievement
 
 	static public function tooltip($tag, $html, $title, $class = '')
 	{
-		return Html::rawElement($tag, ['class' => 'note-tooltip' . ($class === '' ? '' : ' ' . $class), 'title' => $title], $html);
+		return \MediaWiki\Html\Html::rawElement($tag, ['class' => 'note-tooltip' . ($class === '' ? '' : ' ' . $class), 'title' => $title], $html);
 	}
 
 	// 在用户设定页面生成可用称号列表和成就列表
@@ -285,7 +289,7 @@ class ExtAchievement
 			return true;
 		}
 
-		$usertitle = MediaWikiServices::getInstance()->getUserOptionsLookup()->getOption($user, 'achievtitle', '');
+		$usertitle = \MediaWiki\MediaWikiServices::getInstance()->getUserOptionsLookup()->getOption($user, 'achievtitle', '');
 		// AchievementHandler::updateUserAchievs( $user );
 		$allachievs = AchievementHandler::AchievementsFromAll();
 		AchievementHandler::sortAchievements($allachievs);
@@ -333,16 +337,16 @@ class ExtAchievement
 	// 检查设定头衔
 	static public function onUserSaveSettings(User $user)
 	{
-		$userOptionsLookup = MediaWikiServices::getInstance()->getUserOptionsLookup();
+		$userOptionsLookup = \MediaWiki\MediaWikiServices::getInstance()->getUserOptionsLookup();
 		$achievtitle = $userOptionsLookup->getOption($user, 'achievtitle', null);
 		if (!empty($achievtitle)) {
 			$achievtitle = trim($achievtitle);
 			if (AchievementHandler::quickCheckUserAchiev($user, $achievtitle)) {
 				return true;
 			}
-			$userOptionsManager = MediaWikiServices::getInstance()->getUserOptionsManager();
+			$userOptionsManager = \MediaWiki\MediaWikiServices::getInstance()->getUserOptionsManager();
 			$userOptionsManager->setOption($user, 'achievtitle', '');
-			$userOptionsManager->saveOptionsInternal($user, wfGetDB(DB_PRIMARY));
+			$userOptionsManager->saveOptionsInternal($user, \MediaWiki\MediaWikiServices::getInstance()->getConnectionProvider()->getPrimaryDatabase());
 		}
 
 		return true;
@@ -382,11 +386,11 @@ class ExtAchievement
 				if ($userId > 0) {
 					if (class_exists('wAvatar')) {
 						$avatar = new wAvatar($userId, 'm');
-						$img = Html::rawElement(
+						$img = \MediaWiki\Html\Html::rawElement(
 							'img',
 							[
 								'class' => 'useravatar',
-								'src' => $avatar->getAvatarUrlPath()
+								'src' => $avatar->getAvatarURL( [ 'raw' => true ] )
 							]
 						);
 						$html = new HtmlArmor($img . HtmlArmor::getHtml($html));
@@ -408,11 +412,11 @@ class ExtAchievement
 			$id = $user['id'];
 			$avatar = new wAvatar($id, 'm');
 			return new SafeString(
-				Html::rawElement(
+				\MediaWiki\Html\Html::rawElement(
 					'img',
 					[
 						'class' => 'useravatar',
-						'src' => $avatar->getAvatarUrlPath()
+						'src' => $avatar->getAvatarURL( [ 'raw' => true ] )
 					]
 				)
 			);
@@ -423,7 +427,7 @@ class ExtAchievement
 	// 在Flow话题作者名称后加上头衔
 	static public function FlowTitleHelper($user)
 	{
-		$user = MediaWikiServices::getInstance()->getUserFactory()->newFromId($user['id']);
+		$user = \MediaWiki\MediaWikiServices::getInstance()->getUserFactory()->newFromId($user['id']);
 		if ($user instanceof User && !$user->isAnon()) {
 			$text = AchievementHandler::getUserTitle($user, false);
 			if ($text !== false)
@@ -439,14 +443,15 @@ class ExtAchievement
 		if ($wgUserProfileDisplay['achiev'] == false) {
 			return true;
 		}
-		global $wgUser, $wgOut, $wgAchievementsScoring;
+		global $wgOut, $wgAchievementsScoring;
+		$user = \MediaWiki\Context\RequestContext::getMain()->getUser();
 
 		$output = '';
 		$po = '';
 		$output .= '<div class="user-section-heading"><div class="user-section-title">' .
 			wfMessage('user-achiev-info-title')->escaped() .
 			'</div><div class="user-section-actions"><div class="action-right">';
-		if ($wgUser->getName() == $page->user_name) {
+		if ($user->getName() == $page->user_name) {
 			$output .= '<a href="' . htmlspecialchars(\SpecialPage::getTitleFor('Preferences')->getLocalURL() . '#mw-prefsection-achievements') . '">' .
 				wfMessage('prefs-achievements')->escaped() . '</a>';
 		}

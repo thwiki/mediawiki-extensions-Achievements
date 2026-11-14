@@ -1,10 +1,11 @@
 <?php
 
 namespace Achiev;
+use Wikimedia\Rdbms\Database;
 
-use \MediaWiki\MediaWikiServices;
+use MediaWiki\MediaWikiServices;
 use MediaWiki\User\UserFactory;
-use \User;
+use User;
 
 class AchievementHandler
 {
@@ -96,7 +97,7 @@ class AchievementHandler
 	static public function sortAchievements(&$res)
 	{
 		$order = array_keys(self::configs());
-		usort($res, function (&$a, &$b) use ($order) {
+		usort($res, function ($a, $b) use ($order) {
 			$an = $a->getID();
 			$bn = $b->getID();
 			if ($an == $bn)
@@ -122,7 +123,7 @@ class AchievementHandler
 	static public function quickGetUserIdAndTitle(string $dbKey)
 	{
 		$cache = MediaWikiServices::getInstance()->getMainWANObjectCache();
-		$language = wfGetLangObj();
+		$language = MediaWikiServices::getInstance()->getLanguageFactory()->getLanguage('en');
 		$key = $cache->makeKey('achiev', 'user', 'title', $language->getCode(), $dbKey);
 
 		return $cache->getWithSetCallback(
@@ -177,7 +178,7 @@ class AchievementHandler
 		if ($achiev === false) {
 			return [];
 		}
-		$dbr = wfGetDB(DB_REPLICA);
+		$dbr = MediaWikiServices::getInstance()->getConnectionProvider()->getReplicaDatabase();
 		$res = $dbr->select(
 			'achievements',
 			'ac_user',
@@ -218,9 +219,9 @@ class AchievementHandler
 				if ($achiev === false) {
 					return 0;
 				}
-				$dbr = wfGetDB(DB_REPLICA);
+				$dbr = MediaWikiServices::getInstance()->getConnectionProvider()->getReplicaDatabase();
 
-				$setOpts = \Database::getCacheSetOptions($dbr);
+				$setOpts = Database::getCacheSetOptions($dbr);
 
 				return (int) $dbr->selectField(
 					'achievements',
@@ -244,9 +245,9 @@ class AchievementHandler
 			function ($oldValue, &$ttl, &$setOpts) use ($user) { // Function to generate the value on cache miss
 				if ($user->isAnon() || $user->getBlock())
 					return [];
-				$dbw = wfGetDB(DB_REPLICA);
+				$dbw = MediaWikiServices::getInstance()->getConnectionProvider()->getReplicaDatabase();
 
-				$setOpts = \Database::getCacheSetOptions($dbw);
+				$setOpts = Database::getCacheSetOptions($dbw);
 
 				$res = $dbw->select(
 					'achievements',
@@ -315,7 +316,7 @@ class AchievementHandler
 		if (!($user instanceof User)) {
 			return [];
 		}
-		$dbw = wfGetDB(DB_REPLICA);
+		$dbw = MediaWikiServices::getInstance()->getConnectionProvider()->getReplicaDatabase();
 
 		$res = $dbw->select(
 			'achievements',
@@ -394,7 +395,7 @@ class AchievementHandler
 		if ($mode === 'refresh') {
 			$cache->delete($key, 1);
 		} else {
-			wfGetDB(DB_MASTER)->onTransactionPreCommitOrIdle(
+			MediaWikiServices::getInstance()->getConnectionProvider()->getPrimaryDatabase()->onTransactionPreCommitOrIdle(
 				function () use ($cache, $key) {
 					$cache->delete($key);
 				},

@@ -1,8 +1,10 @@
 <?php
 
 namespace Achiev;
+use MediaWiki\MediaWikiServices;
+use MediaWiki\Page\WikiPage;
 
-use \User;
+use User;
 
 class ViewCountCounter extends Counter
 {
@@ -18,7 +20,7 @@ class ViewCountCounter extends Counter
 		}
 	}
 
-	public function updateHook($opt, \WikiPage $wikipage, User $user)
+	public function updateHook($opt, WikiPage $wikipage, User $user)
 	{ // PageViewUpdates
 		if ($this->isBlocked($user) || !$wikipage->exists() || AchievementHandler::quickCheckUserAchiev($user, $this->id))
 			return;
@@ -31,7 +33,7 @@ class ViewCountCounter extends Counter
 			$inns = true;
 			$incat = true;
 			$title = $wikipage->getTitle();
-			$dbr = wfGetDB(DB_REPLICA);
+			$dbr = MediaWikiServices::getInstance()->getConnectionProvider()->getReplicaDatabase();
 			if (isset($cond['page'])) {
 				if ($title->inNamespace($cond['ns']) && (is_array($cond['page']) ? in_array($title->getDBkey(), $cond['page'], true) : $title->getDBkey() === $cond['page'])) {
 					$inpage = true;
@@ -47,11 +49,7 @@ class ViewCountCounter extends Counter
 					$inns = $title->inNamespace($cond['ns']);
 				}
 				if (isset($cond['cat'])) {
-					$incat = (bool) $dbr->selectField(
-						'categorylinks',
-						'COUNT(1)',
-						['cl_from' => $title->getArticleID(), 'cl_to' => $cond['cat']]
-					);
+					$incat = (bool) $dbr->selectField( [ 'categorylinks', 'linktarget' ], 'COUNT(1)', [ 'cl_from' => $title->getArticleID(), 'cl_target_id=lt_id', 'lt_namespace' => NS_CATEGORY, 'lt_title' => $cond['cat'] ] );
 				}
 			}
 			if ($inpage && $inns && $incat) {

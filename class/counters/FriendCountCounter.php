@@ -2,7 +2,7 @@
 
 namespace Achiev;
 
-use \User;
+use User;
 use MediaWiki\MediaWikiServices;
 
 class FriendCountCounter extends Counter
@@ -13,7 +13,7 @@ class FriendCountCounter extends Counter
 		if ($this->isBlocked($user))
 			return;
 		if ($this->config['init'] === 'current') {
-			$dbr = wfGetDB(DB_MASTER);
+			$dbr = MediaWikiServices::getInstance()->getConnectionProvider()->getPrimaryDatabase();
 
 			return (int) ($dbr->selectField(
 				'user_relationship',

@@ -1,8 +1,9 @@
 <?php
 
 namespace Achiev;
+use MediaWiki\MediaWikiServices;
 
-use \User;
+use User;
 
 abstract class Counter
 {
@@ -100,7 +101,7 @@ abstract class Counter
 		if (is_null($value))
 			$value = 0;
 		$value = max(intval($value), 0);
-		$dbw = wfGetDB(DB_MASTER);
+		$dbw = MediaWikiServices::getInstance()->getConnectionProvider()->getPrimaryDatabase();
 		$dbw->insert(
 			'achievements',
 			['ac_user' => $user->getId(), 'ac_id' => $this->id, 'ac_count' => $value]
@@ -113,7 +114,7 @@ abstract class Counter
 		if (is_null($this->id))
 			return false;
 		$value = max(intval($value), 0);
-		$dbw = wfGetDB(DB_MASTER);
+		$dbw = MediaWikiServices::getInstance()->getConnectionProvider()->getPrimaryDatabase();
 
 		if ($value == 0) {
 			$dbw->update(
@@ -142,7 +143,7 @@ abstract class Counter
 		$value = intval($value);
 		if ($value == 0)
 			return true;
-		$dbw = wfGetDB(DB_MASTER);
+		$dbw = MediaWikiServices::getInstance()->getConnectionProvider()->getPrimaryDatabase();
 		$dbw->update(
 			'achievements',
 			['ac_count=ac_count' . ($value > 0 ? '+' . abs($value) : '-' . abs($value))],
@@ -160,7 +161,7 @@ abstract class Counter
 	public function getPositionCount($pos = 1)
 	{
 		if (!isset($this->positioncache[$pos])) {
-			$dbr = wfGetDB(DB_REPLICA);
+			$dbr = MediaWikiServices::getInstance()->getConnectionProvider()->getReplicaDatabase();
 
 			$this->positioncache[$pos] = (int) ($dbr->selectField(
 				'achievements',

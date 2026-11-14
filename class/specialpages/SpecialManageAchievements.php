@@ -2,11 +2,11 @@
 
 namespace Achiev;
 
-use \MediaWiki\MediaWikiServices;
-use \SpecialPage;
-use \User;
-use \Html;
-use \HTMLForm;
+use MediaWiki\MediaWikiServices;
+use MediaWiki\SpecialPage\SpecialPage;
+use MediaWiki\User\User;
+use MediaWiki\Html\Html;
+use MediaWiki\HTMLForm\HTMLForm;
 
 class SpecialManageAchievements extends SpecialPage
 {
@@ -97,7 +97,7 @@ class SpecialManageAchievements extends SpecialPage
 
 	public static function buildTools($lang, $linkRenderer = null)
 	{
-		if (!$lang instanceof \Language) {
+		if (!$lang instanceof Language) {
 			// back-compat where the first parameter was $unused
 			global $wgLang;
 			$lang = $wgLang;
@@ -171,7 +171,7 @@ class SpecialManageAchievements extends SpecialPage
 
 		switch ($mode) {
 			case self::MODE_LIST:
-				$out->setPageTitle($this->msg('manageachievements-mode-list'));
+				$out->setPageTitle($this->msg('manageachievements-mode-list')->text());
 				$allachievs = AchievementHandler::AchievementsFromAll();
 				AchievementHandler::sortAchievements($allachievs);
 
@@ -185,16 +185,16 @@ class SpecialManageAchievements extends SpecialPage
 				$out->addModules(['ext.pref.achievement']);
 				break;
 			case self::MODE_PROG:
-				$out->setPageTitle($this->msg('manageachievements-mode-prog'));
+				$out->setPageTitle($this->msg('manageachievements-mode-prog')->text());
 				$this->showAchievForm('processProgInput');
 				break;
 			case self::MODE_ACHIEVER:
-				$out->setPageTitle($this->msg('manageachievements-mode-achiever'));
+				$out->setPageTitle($this->msg('manageachievements-mode-achiever')->text());
 				$this->showAchievForm('processAchieverInput');
 				break;
 			case self::MODE_TITLE:
-				$out->setPageTitle($this->msg('manageachievements-mode-title'));
-				$dbw = wfGetDB(DB_REPLICA);
+				$out->setPageTitle($this->msg('manageachievements-mode-title')->text());
+				$dbw = MediaWikiServices::getInstance()->getConnectionProvider()->getReplicaDatabase();
 
 				$res = $dbw->select(
 					'user_properties',
@@ -210,7 +210,7 @@ class SpecialManageAchievements extends SpecialPage
 						$stage = 0;
 						$achiev = AchievementHandler::AchievementFromStagedID($row['up_value'], $stage);
 						if ($achiev !== false) {
-							$out->addHTML('<li>' . User::whoIs($row['up_user']) . ' ' . $achiev->getAfterLinkMsg($stage, false) . '</a></li>');
+							$out->addHTML('<li>' . self::whoIs($row['up_user']) . ' ' . $achiev->getAfterLinkMsg($stage, false) . '</a></li>');
 						}
 
 					}
@@ -218,8 +218,8 @@ class SpecialManageAchievements extends SpecialPage
 				}
 				break;
 			case self::MODE_RECENT:
-				$out->setPageTitle($this->msg('manageachievements-mode-recent'));
-				$dbw = wfGetDB(DB_REPLICA);
+				$out->setPageTitle($this->msg('manageachievements-mode-recent')->text());
+				$dbw = MediaWikiServices::getInstance()->getConnectionProvider()->getReplicaDatabase();
 
 				$res = $dbw->select(
 					['echo_event', 'echo_notification'],
@@ -253,12 +253,12 @@ class SpecialManageAchievements extends SpecialPage
 				}
 				break;
 			case self::MODE_USER:
-				$out->setPageTitle($this->msg('manageachievements-mode-user'));
+				$out->setPageTitle($this->msg('manageachievements-mode-user')->text());
 				$this->showUserForm('processUserInput');
 				$out->addModules(['ext.pref.achievement']);
 				break;
 			case self::MODE_MSG:
-				$out->setPageTitle($this->msg('manageachievements-mode-msg'));
+				$out->setPageTitle($this->msg('manageachievements-mode-msg')->text());
 				$list = AchievementHandler::AchievementsFromAll();
 				$json = [];
 
@@ -277,8 +277,8 @@ class SpecialManageAchievements extends SpecialPage
 			case self::MODE_RANKING:
 				global $wgAchievementsScoring;
 
-				$out->setPageTitle($this->msg('manageachievements-mode-ranking'));
-				$dbw = wfGetDB(DB_REPLICA);
+				$out->setPageTitle($this->msg('manageachievements-mode-ranking')->text());
+				$dbw = MediaWikiServices::getInstance()->getConnectionProvider()->getReplicaDatabase();
 
 				$res = $dbw->select(
 					'achievements',
@@ -322,7 +322,7 @@ class SpecialManageAchievements extends SpecialPage
 			case self::MODE_SCORING:
 				global $wgAchievementsScoring;
 
-				$out->setPageTitle($this->msg('manageachievements-mode-scoring'));
+				$out->setPageTitle($this->msg('manageachievements-mode-scoring')->text());
 
 				if (!$wgAchievementsScoring) {
 					$out->addHTML($this->msg('manage-achiev-disable-scoring'));
@@ -356,11 +356,11 @@ class SpecialManageAchievements extends SpecialPage
 				$out->addHTML('</ol>');
 				break;
 			case self::MODE_TOKEN:
-				$out->setPageTitle($this->msg('manageachievements-mode-token'));
+				$out->setPageTitle($this->msg('manageachievements-mode-token')->text());
 				$this->showTokenForm('processTokenInput');
 				break;
 			case self::MODE_TOKENS:
-				$out->setPageTitle($this->msg('manageachievements-mode-tokens'));
+				$out->setPageTitle($this->msg('manageachievements-mode-tokens')->text());
 				$delete = trim($request->getVal('delete', ''));
 
 				if (!empty($delete)) {
@@ -370,7 +370,7 @@ class SpecialManageAchievements extends SpecialPage
 				}
 
 				$cache = MediaWikiServices::getInstance()->getMainObjectStash();
-				$dbw = wfGetDB(DB_REPLICA);
+				$dbw = MediaWikiServices::getInstance()->getConnectionProvider()->getReplicaDatabase();
 				$keyprefix = str_replace('@@', '', Token::getMemcKey($cache, '@@'));
 
 				$res = $dbw->select(
@@ -412,12 +412,12 @@ class SpecialManageAchievements extends SpecialPage
 						$out->addHTML(Html::rawElement('td', [], $hash));
 						$out->addHTML(Html::rawElement('td', [], $data['achiev']));
 						if (!empty($data['user'])) {
-							$out->addHTML(Html::rawElement('td', [], User::whoIs($data['user'])));
+							$out->addHTML(Html::rawElement('td', [], self::whoIs($data['user'])));
 						} else {
 							$out->addHTML(Html::rawElement('td', [], ''));
 						}
 						if (!empty($data['target'])) {
-							$out->addHTML(Html::rawElement('td', [], User::whoIs($data['target'])));
+							$out->addHTML(Html::rawElement('td', [], self::whoIs($data['target'])));
 						} else {
 							$out->addHTML(Html::rawElement('td', [], ''));
 						}
@@ -451,11 +451,11 @@ class SpecialManageAchievements extends SpecialPage
 				}
 				break;
 			case self::MODE_TEST_TOKEN:
-				$out->setPageTitle($this->msg('manageachievements-mode-prog'));
+				$out->setPageTitle($this->msg('manageachievements-mode-prog')->text());
 				$this->showAchievForm('processTestTokenInput');
 				break;
 			case self::MODE_OTHER:
-				$dbw = wfGetDB(DB_REPLICA);
+				$dbw = MediaWikiServices::getInstance()->getConnectionProvider()->getReplicaDatabase();
 				$res = $dbw->select(
 					'dish_game',
 					['user_id', 'COUNT(1) as dish', 'MAX(get_date) as dish_date'],
@@ -472,7 +472,7 @@ class SpecialManageAchievements extends SpecialPage
 				$out->addHTML('</ul>');
 				break;
 			case self::MODE_RANDOM:
-				$out->setPageTitle($this->msg('manageachievements-mode-random'));
+				$out->setPageTitle($this->msg('manageachievements-mode-random')->text());
 				$list = AchievementHandler::AchievementsFromCounter('random');
 				$clear = trim($request->getVal('clear', ''));
 				$out->addHTML('<ul>');
@@ -597,7 +597,7 @@ class SpecialManageAchievements extends SpecialPage
 			$id = $data['achiev'];
 			$achiev = AchievementHandler::AchievementFromID($id);
 			if ($achiev) {
-				$dbw = wfGetDB(DB_REPLICA);
+				$dbw = MediaWikiServices::getInstance()->getConnectionProvider()->getReplicaDatabase();
 
 				$res = $dbw->select(
 					'achievements',
@@ -612,7 +612,7 @@ class SpecialManageAchievements extends SpecialPage
 					$lr = $this->getLinkRenderer();
 					$this->successMessage .= '<ol>';
 					while ($row = $res->fetchRow()) {
-						$this->successMessage .= '<li>' . User::whoIs($row['ac_user']) . ': ' . $row['ac_count'] . '</li>';
+						$this->successMessage .= '<li>' . self::whoIs($row['ac_user']) . ': ' . $row['ac_count'] . '</li>';
 					}
 					$this->successMessage .= '</ol>';
 				}
@@ -628,13 +628,13 @@ class SpecialManageAchievements extends SpecialPage
 			$stage = 0;
 			$achiev = AchievementHandler::AchievementFromStagedID($id, $stage);
 			if ($achiev) {
-				$dbw = wfGetDB(DB_REPLICA);
+				$dbw = MediaWikiServices::getInstance()->getConnectionProvider()->getReplicaDatabase();
 
 				$list = AchievementHandler::getAchievers($id);
 				$this->successMessage .= $achiev->getNameMsg($stage) . $this->msg('manage-achiev-user-count')->rawParams(count($list))->escaped() . '<br/>';
 				$this->successMessage .= '<ul>';
 				foreach ($list as $userid) {
-					$this->successMessage .= '<li>' . User::whoIs($userid) . '</li>';
+					$this->successMessage .= '<li>' . self::whoIs($userid) . '</li>';
 				}
 				$this->successMessage .= '</ul>';
 			}
@@ -771,4 +771,8 @@ class SpecialManageAchievements extends SpecialPage
 		return is_array($res) && isset($res[0]) ? $res[0] : '';
 	}
 
+
+	private static function whoIs( $userId ) {
+		return MediaWikiServices::getInstance()->getUserFactory()->newFromId( (int)$userId )->getName();
+	}
 }

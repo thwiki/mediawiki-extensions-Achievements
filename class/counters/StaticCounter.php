@@ -2,7 +2,7 @@
 
 namespace Achiev;
 
-use \User;
+use User;
 
 class StaticCounter extends Counter
 {

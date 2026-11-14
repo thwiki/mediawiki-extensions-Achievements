@@ -1,8 +1,9 @@
 <?php
 
 namespace Achiev;
+use MediaWiki\MediaWikiServices;
 
-use \User;
+use User;
 
 class WatchCounter extends Counter
 {
@@ -13,7 +14,7 @@ class WatchCounter extends Counter
 			return;
 		if ($this->config['init'] === 'current') {
 			$cond = $this->buildCond();
-			$dbr = wfGetDB(DB_REPLICA);
+			$dbr = MediaWikiServices::getInstance()->getConnectionProvider()->getReplicaDatabase();
 			if (empty($cond)) {
 				$res = $dbr->select(
 					['page', 'watchlist'],
@@ -66,10 +67,7 @@ class WatchCounter extends Counter
 									'INNER JOIN',
 									['wl_namespace=page_namespace', 'wl_title=page_title', 'wl_user' => $user->getId()]
 								],
-								'categorylinks' => [
-									'INNER JOIN',
-									['cl_from=page_id', 'cl_to' => $cond['cat']]
-								]
+								'categorylinks' => [ 'INNER JOIN', [ 'cl_from=page_id', 'cl_target_id=lt_id' ] ], 'linktarget' => [ 'INNER JOIN', [ 'lt_id=cl_target_id', 'lt_namespace' => NS_CATEGORY, 'lt_title' => $cond['cat'] ] ]
 							]
 						);
 					} elseif (isset($cond['ns'])) {
@@ -133,7 +131,7 @@ class WatchCounter extends Counter
 			$inns = true;
 			$incat = true;
 			$title = $article->getTitle();
-			$dbr = wfGetDB(DB_REPLICA);
+			$dbr = MediaWikiServices::getInstance()->getConnectionProvider()->getReplicaDatabase();
 			if (isset($cond['page'])) {
 				if ($title->inNamespace($cond['ns']) && (is_array($cond['page']) ? in_array($title->getDBkey(), $cond['page'], true) : $title->getDBkey() === $cond['page'])) {
 					$inpage = true;
@@ -149,11 +147,7 @@ class WatchCounter extends Counter
 					$inns = $title->inNamespace($cond['ns']);
 				}
 				if (isset($cond['cat'])) {
-					$incat = (bool) $dbr->selectField(
-						'categorylinks',
-						'COUNT(1)',
-						['cl_from' => $title->getArticleID(), 'cl_to' => $cond['cat']]
-					);
+					$incat = (bool) $dbr->selectField( [ 'categorylinks', 'linktarget' ], 'COUNT(1)', [ 'cl_from' => $title->getArticleID(), 'cl_target_id=lt_id', 'lt_namespace' => NS_CATEGORY, 'lt_title' => $cond['cat'] ] );
 				}
 			}
 			if ($inpage && $inns && $incat) {
