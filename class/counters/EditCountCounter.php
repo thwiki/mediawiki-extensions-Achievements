@@ -4,6 +4,7 @@ namespace Achiev;
 
 use User;
 use MediaWiki\MediaWikiServices;
+use MediaWiki\Deferred\DeferredUpdates;
 use MediaWiki\Page\WikiPage;
 use MediaWiki\Title\Title;
 use MediaWiki\Revision\RevisionRecord;
@@ -132,56 +133,88 @@ class EditCountCounter extends Counter
 			return;
 
 		$cond = $this->buildCond();
-		if (empty($cond)) {
-			$this->addUserCountDB($user, 1);
-			$this->updateAchievSafe($user);
-		} else {
-			$inpage = true;
-			$inns = true;
-			$incat = true;
-			$dbr = MediaWikiServices::getInstance()->getConnectionProvider()->getReplicaDatabase();
-			if (isset($cond['page'])) {
-				if ($title->inNamespace($cond['ns']) && $title->getDBkey() === $cond['page']) {
-					$inpage = true;
-				} else {
-					if ($cond['subpage'] && mb_substr($title->getDBkey(), 0, mb_strlen($cond['page'] . '/')) === $cond['page'] . '/') {
-						$inpage = true;
-					} else {
-						$inpage = false;
-					}
-				}
+		if ( empty( $cond ) ) {
+			$this->addUserCountDB( $user, 1 );
+			$this->updateAchievSafe( $user );
+			return;
+		}
+
+		if ( isset( $cond['cat'] ) ) {
+			// [THBWiki] 分类由延迟执行的 LinksUpdate 写入，PageSaveComplete 触发时
+			// categorylinks 还没有本次编辑的新分类；把分类判定推迟到 LinksUpdate 之后，
+			// 否则「新建带头部模板的页面」「给普通词条加头部」都不会计数。
+			// 只影响之后的编辑，不追溯历史。
+			$counter = $this;
+			$dbw = MediaWikiServices::getInstance()->getConnectionProvider()->getPrimaryDatabase();
+			DeferredUpdates::addCallableUpdate(
+				static function () use ( $counter, $wikiPage, $user, $revisionRecord, $title, $cond ) {
+					$counter->countEditForCondition( $wikiPage, $user, $revisionRecord, $title, $cond );
+				},
+				DeferredUpdates::POSTSEND,
+				[ $dbw ]
+			);
+			return;
+		}
+
+		$this->countEditForCondition( $wikiPage, $user, $revisionRecord, $title, $cond );
+	}
+
+	/**
+	 * 判断本次编辑是否满足计数条件并计数。
+	 * 分类条件用主库查询，保证 LinksUpdate 写入后能读到（也避开 replica 延迟）。
+	 */
+	public function countEditForCondition( WikiPage $wikiPage, User $user, RevisionRecord $revisionRecord, Title $title, array $cond ) {
+		$inpage = true;
+		$inns = true;
+		$incat = true;
+
+		if ( isset( $cond['page'] ) ) {
+			if ( $title->inNamespace( $cond['ns'] ) && $title->getDBkey() === $cond['page'] ) {
+				$inpage = true;
+			} elseif ( $cond['subpage'] && mb_substr( $title->getDBkey(), 0, mb_strlen( $cond['page'] . '/' ) ) === $cond['page'] . '/' ) {
+				$inpage = true;
 			} else {
-				if (isset($cond['ns'])) {
-					$inns = $title->inNamespace($cond['ns']);
-				}
-				if (isset($cond['cat'])) {
-					$cats = $wikiPage->getCategories();
-					$incat = false;
-					$cattext = '';
-					foreach ($cats as $cat) {
-						$cattext .= $cat->getText() . '|';
-						if ($cat->getText() === $cond['cat']) {
-							$incat = true;
-							break;
-						}
+				$inpage = false;
+			}
+		} else {
+			if ( isset( $cond['ns'] ) ) {
+				$inns = $title->inNamespace( $cond['ns'] );
+			}
+			if ( isset( $cond['cat'] ) ) {
+				$incat = false;
+				$catTitle = Title::makeTitleSafe( NS_CATEGORY, $cond['cat'] );
+				if ( $catTitle ) {
+					$dbr = MediaWikiServices::getInstance()->getConnectionProvider()->getPrimaryDatabase();
+					$catId = $dbr->selectField(
+						'linktarget',
+						'lt_id',
+						[ 'lt_namespace' => NS_CATEGORY, 'lt_title' => $catTitle->getDBkey() ],
+						__METHOD__
+					);
+					if ( $catId ) {
+						$incat = (bool)$dbr->selectField(
+							'categorylinks',
+							'1',
+							[ 'cl_from' => $wikiPage->getId(), 'cl_target_id' => $catId ],
+							__METHOD__
+						);
 					}
 				}
 			}
-			if ($inpage && $inns && $incat) {
-				$contributors = $this->getContributors($wikiPage, $revisionRecord);
-				$prev = false;
-				$usertext = '';
-				foreach ($contributors as $contributor) {
-					$usertext .= $contributor->getName() . '|';
-					if ($contributor->equals($user)) {
-						$prev = true;
-						break;
-					}
+		}
+
+		if ( $inpage && $inns && $incat ) {
+			$contributors = $this->getContributors( $wikiPage, $revisionRecord );
+			$prev = false;
+			foreach ( $contributors as $contributor ) {
+				if ( $contributor->equals( $user ) ) {
+					$prev = true;
+					break;
 				}
-				if ($prev === false) {
-					$this->addUserCountDB($user, 1);
-					$this->updateAchievSafe($user);
-				}
+			}
+			if ( $prev === false ) {
+				$this->addUserCountDB( $user, 1 );
+				$this->updateAchievSafe( $user );
 			}
 		}
 	}
